@@ -1,18 +1,6 @@
 <?php
 
 session_start();
-register_shutdown_function('shutdown');
-
-function shutdown()
-{
-    if (error_get_last() !== null)
-    {
-        global $app;
-        include_once('../framework/header.php');
-        include_once('../framework/_500.php');
-        include_once('../framework/footer.php');
-    }
-}
 
 require_once '../framework/controller/controller.php';
 require_once '../framework/db.php';
@@ -25,21 +13,11 @@ $app = new App();
 // parse url
 $path = explode('/', $_SERVER['REQUEST_URI']);
 
-// handle the fact that $_GET is not populated
+// remove the $_GET parameters from the last argument
 $last_arg = array_pop($path);
 $getstr = divide($last_arg, '?');
 unset($last_arg);
 array_push($path, array_shift($getstr));
-$getstr = array_pop($getstr);
-$getarray = explode('&', $getstr);
-$get = array();
-foreach ($getarray as $getpair)
-{
-    $pair = divide($getpair, '=');
-    $get[$pair[0]] = $pair[1];
-}
-unset($getstr);
-unset($getarray);
 
 array_shift($path); // remove empty first element because paths start with /
 
@@ -74,7 +52,7 @@ if (file_exists($controllerFile))
     {
         if (method_exists($controller, $controllerMethod))
         {
-            $viewData = $controller->$controllerMethod($controllerArgs, $get);
+            $viewData = $controller->$controllerMethod($controllerArgs);
         }
         else
         {
