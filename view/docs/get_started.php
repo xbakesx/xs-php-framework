@@ -53,9 +53,9 @@
             <li class="folder">
                 <code>www</code> - The web directory
                 <ul>
-                    <li class="file"><code>css</code> - put your css in here</li>
-                    <li class="file"><code>img</code> - put your images in here</li>
-                    <li class="file"><code>js</code> - put your javascript in here</li>
+                    <li class="folder"><code>css</code> - put your css in here</li>
+                    <li class="folder"><code>img</code> - put your images in here</li>
+                    <li class="folder"><code>js</code> - put your javascript in here</li>
                     <li class="system_file"><code>index.php</code> - this really has to be index.php and editing this is as dangerous as editing things in <code>/framework</code></li>
                 </ul>
         </ul>

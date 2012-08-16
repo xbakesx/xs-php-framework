@@ -16,7 +16,7 @@ class DocsController extends Controller {
                 <li><a href="/docs/get_started#download">Download Source</a></li>
                 <li><a href="/docs/get_started#webserver">Web Server</a></li>
                 <li><a href="/docs/get_started#structure">Directory Structure</a></li>
-                <li><a href="/docs/get_started#mvc">&quot;MVC&quot;</a></li>
+                <li><a href="/docs/get_started#mvc">&quot;MVC&quot; Flow</a></li>
                 <li><a href="/docs/get_started#controllers">Controllers</a></li>
                 <li><a href="/docs/get_started#views">Views</a></li>
                 <li><a href="/docs/get_started#models">Models</a></li>

@@ -7,7 +7,7 @@
 					<ul id="Mainmenu" class="nav pull-right">
 						<li><a href="/docs" title="Documentation">Documentation</a></li>
 						<li><a href="/download" title="Download">Download</a></li>
-						<li><a href="/help" title="Help">Help</a></li>
+						<li><a href="/help/todo" title="Help">Help</a></li>
 					</ul>
 				</div>
 			</div>
