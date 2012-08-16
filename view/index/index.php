@@ -1,0 +1,1 @@
+<h1>Welcome to XS - <em>The</em> PHP Framework</h1>
