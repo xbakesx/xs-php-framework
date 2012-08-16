@@ -1,0 +1,41 @@
+/**
+ * Bootstrap overrides and common/utility css classes
+ */
+ 
+h1, h2, h3, h4, h5, h6 {
+	margin-top: 1em;
+	margin-bottom: .5em;
+}
+
+.table_of_contents {
+    float: left;
+    margin-right: 18px;
+    width: 300px;
+}
+
+.content {
+	margin-left: 356px;
+}
+
+.centered {
+	margin: 0px auto;
+    width: 600px;
+}
+
+.http_error {
+	font-size: 150px;
+	float: left;
+	letter-spacing: -10px;
+	line-height: 150px;
+	margin: 0px 18px 0px 0px;
+}
+
+.http_error_message {
+	padding-top: 115px;
+}
+
+.clear {
+	clear: both !important;
+	float: none !important;
+    height: 0px !important;
+}

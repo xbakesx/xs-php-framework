@@ -1,0 +1,9 @@
+@CHARSET "UTF-8";
+
+.banner {
+	background: 50% 50% url('https://a248.e.akamai.net/assets.github.com/images/modules/footer/blacktocat.svg?ab2f05ff') no-repeat;
+	line-height: 130px;
+	min-height: 130px;
+	text-align: center;
+}
+

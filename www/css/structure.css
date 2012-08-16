@@ -1,0 +1,44 @@
+/**
+ * This is the css file for the structure of your website, probably applies to elements in
+ * /conf/header.php and /conf/footer.php
+ */
+ 
+body {
+}
+
+/**
+ * Header Styles
+ */
+ 
+header {
+	margin: 50px 50px 18px 50px;
+}
+ 
+/**
+ * Body Styles
+ */
+ 
+#content {
+	margin: 0px 50px;
+	min-height: 300px;
+}
+
+/**
+ * Footer Styles
+ */
+ 
+footer {
+	background-color: whiteSmoke;
+	border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+	min-height: 50px;
+	padding: 18px 50px;
+}
+ 
+.org_info {
+	float: left;
+}
+
+.footer_info {
+	float: right;
+}
