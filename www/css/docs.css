@@ -1,0 +1,24 @@
+@CHARSET "UTF-8";
+
+ul.file_browser li {
+	background: 0px 3px url('/img/folder.png') no-repeat;
+	line-height: 22px;
+	list-style: none;
+	padding-left: 20px;
+}
+
+ul.file_browser li.folder  {
+    background-image: url('/img/folder.png');	
+}
+
+ul.file_browser li.system_folder  {
+    background-image: url('/img/folder_error.png');   
+}
+
+ul.file_browser li.file {
+    background-image: url('/img/page_white_code.png');
+}
+
+ul.file_browser li.system_file {
+    background-image: url('/img/page_white_error.png');
+}
