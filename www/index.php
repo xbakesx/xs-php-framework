@@ -3,6 +3,7 @@
 session_start();
 
 require_once '../framework/controller/controller.php';
+require_once '../framework/model/model.php';
 require_once '../framework/db.php';
 require_once '../framework/util.php';
 require_once '../conf/app.php';

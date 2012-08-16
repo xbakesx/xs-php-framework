@@ -7,13 +7,43 @@ class UserController extends Controller
         return true;
     }
     
-    public function authorize($args)
+    public function login()
     {
-        $this->json($args);
+        $user = new UserModel();
+        $users = $user->search();
+        unset($user);
+        
+        return array('activeUsers' => count($users));
     }
     
-    public function login($args)
+    public function authorize()
     {
+        $email = $_POST['email'];
+        $password = $this->hashPassword($_POST['password']);
+        
+        $ret = array();
+        
+        $user = new UserModel();
+        if (count($user->search()) == 1)
+        {
+            try
+            {
+                $user->setLastLogin();
+                $user->update();
+                $_SESSION['auth'] = array_shift($user);
+                $ret = $user;
+            }
+            catch (UpdateException $ex)
+            {
+                $ret = array('error' => $ex->getMessage());
+            }
+        }
+        else
+        {
+            $ret = array('error' => 'Invalid email and password');
+        }
+        
+        return $this->json($ret);
     }
     
     public function logout()
@@ -21,5 +51,80 @@ class UserController extends Controller
         session_destroy();
         header('location: /user/login');
         exit;
+    }
+    
+    public function create()
+    {
+        $email = $_POST['email'];
+        $password = $this->hashPassword($_POST['password']);
+        
+        $user = new UserModel();
+        $user->setEmail($email);
+        $user->setPassword($password);
+        
+        try
+        {
+            $user->create();
+            
+            return $this->authorize();
+        }
+        catch (CreateException $ex)
+        {
+            if ($ex->getType() == CreateException::ALREADY_EXISTS)
+            {
+                return $this->authorize();
+            }
+            else
+            {
+                return $this->json(array('error' => $ex->getMessage()));
+            }
+        }
+    }
+    
+    public function changeEmail()
+    {
+        $oldEmail = $_POST['oldEmail'];
+        $newEmail = $_POST['newEmail'];
+        
+        $userSearch = new UserModel();
+        $userSearch->setEmail($newEmail);
+        
+        $foundUsers = $userSearch->search();
+        if (count($foundUsers) > 0)
+        {
+            $this->json(array('error' => 'A user with that email already exists'));
+        }
+        
+        $userSearch = new UserModel();
+        $userSearch->setEmail($oldEmail);
+        
+        $foundUser = array_shift($userSearch->search());
+        $foundUser->setEmail($newEmail);
+        $foundUser->update();
+
+        $this->json($foundUser);
+    }
+    
+    public function resetPassword()
+    {
+        $oldPassword = $this->hashPassword($_POST['oldPassword']);
+        $newPassword = $this->hashPassword($_Post['newPassword']);
+        
+        $email = $_SESSION['auth']->getEmail();
+        
+        $user = new UserModel();
+        $user->setEmail($email);
+        $user->setPassword($oldPassword);
+        $user = array_shift($user->search());
+
+        $user->setPassword($newPassword);
+        $user->update();
+        
+        return $this->json($user);
+    }
+    
+    private function hashPassword($password)
+    {
+        return crypt($password);
     }
 }
