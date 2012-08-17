@@ -3,12 +3,15 @@
 session_start();
 
 require_once '../framework/controller/controller.php';
+require_once '../framework/app.php';
+require_once '../framework/model/model.php';
 require_once '../framework/db.php';
 require_once '../framework/util.php';
 require_once '../conf/app.php';
 
 // configure app
 $app = new App();
+App::$DATABASE_CONNECTIONS = $app->getDatabaseConnections();
 
 // parse url
 $path = explode('/', $_SERVER['REQUEST_URI']);
@@ -24,7 +27,7 @@ array_shift($path); // remove empty first element because paths start with /
 $prefix = array_shift($path);
 if ($prefix === null || strlen($prefix) == 0)
 {
-    $prefix = 'index';
+	$prefix = 'index';
 }
 $prefix = divide($prefix, '.', true);
 
@@ -32,113 +35,97 @@ $controllerName = $prefix.'Controller';
 $controllerMethod = array_shift($path);
 if ($controllerMethod === null || strlen($controllerMethod) == 0)
 {
-    $controllerMethod = 'index';
+	$controllerMethod = 'index';
 }
 $controllerMethod = divide($controllerMethod, '.', true);
 $controllerArgs = $path;
 
 $controllerFile = '../controller/'.$controllerName.'.php';
-$modelFile = '../model/'.$prefix.'.php';
+$modelFile = '../model/'.$prefix.'Model.php';
 $viewFile = '../view/'.$prefix.'/'.$controllerMethod.'.php';
 $viewData = array();
-ob_start();
+
+if (file_exists($modelFile))
+{
+    include_once $modelFile;
+}
 
 if (file_exists($controllerFile))
 {
-    include_once $controllerFile;
-    $controller = new $controllerName;
+	include_once $controllerFile;
+	$controller = new $controllerName($app);
 
-    if ($controller->isAuthorized())
-    {
-        if (method_exists($controller, $controllerMethod))
-        {
-            $viewData = $controller->$controllerMethod($controllerArgs);
-        }
-        else
-        {
-            if ($app->isDebug())
-            {
-                echo '<pre>'.get_class($controller).' has no method '.$controllerMethod.'</pre>';
-            }
-        }
-    }
+	if ($controller->isAuthorized())
+	{
+		if (method_exists($controller, $controllerMethod))
+		{
+		    $viewData = $controller->$controllerMethod($controllerArgs);
+		}
+		else
+		{
+			if ($app->isDebug())
+			{
+				echo '<pre>'.get_class($controller).' has no method '.$controllerMethod.'</pre>';
+			}
+		}
+	}
 }
+
+require_once('../framework/header.php');
 
 if (file_exists($viewFile))
 {
-    if (!isset($controller) || $controller->isAuthorized())
-    {
-        try
-        {
-            include_once $viewFile;
-        }
-        catch (Exception $exception)
-        {
-            include_once '../framework/_500.php';
-        }
-    }
-    else
-    {
-        if (file_exists('../view/user/login.php'))
-        {
-            include_once '../controller/UserController.php';
-            $controller = new UserController();
-            if (method_exists($controller, 'login'))
-            {
-                $viewData = $controller->login($controllerArgs, $get);
-            }
-            include_once '../view/user/login.php';
-        }
-        else
-        {
-            include_once '../framework/_403.php';
-        }
-    }
+	if (!isset($controller) || $controller->isAuthorized())
+	{
+		try
+		{
+			include_once $viewFile;
+				
+			if ($app->isDebug() && error_get_last() !== null)
+			{
+				require_once '../framework/_500.php';
+			}
+
+
+		}
+		catch (Exception $exception)
+		{
+			include_once '../framework/_500.php';
+		}
+	}
+	else
+	{
+		//@TODO: magic currently happening with the login page.
+		if (file_exists('../view/user/login.php'))
+		{
+			include_once '../controller/UserController.php';
+			$controller = new UserController();
+			if (method_exists($controller, 'login'))
+			{
+				$viewData = $controller->login($controllerArgs, $get);
+			}
+			
+			include_once '../view/user/login.php';
+			
+			if ($app->isDebug() && error_get_last() !== null)
+			{
+				require_once '../framework/_500.php';
+			}
+		}
+		else
+		{
+			include_once '../framework/_403.php';
+		}
+	}
 }
 else
 {
-    include_once '../framework/_404.php';
+	include_once '../framework/_404.php';
 }
 
-$contents = ob_get_contents();
-ob_end_clean();
 
-try
-{
-    require_once('../framework/header.php');
-    echo $contents;
-    if ($app->isDebug() && error_get_last() !== null)
-    {
-        require_once '../framework/_500.php';
-    }
-    require_once('../framework/footer.php');
-}
-catch (Exception $ex)
-{
-    echo '<pre>'.$ex->getTrace().'</pre>';
-}
+require_once('../framework/footer.php');
 
-function divide($str, $sep, $returnFirst = false)
-{
-    $index = strpos($str, $sep);
-    
-    if ($index !== false)
-    {
-        $ret = array(substr($str, 0, $index), substr($str, $index + strlen($sep)));
-    }
-    else
-    {
-        $ret = array($str, '');
-    }
-    
-    if ($returnFirst === true)
-    {
-        return array_shift($ret);
-    }
-    else
-    {
-        return $ret;
-    }
-}
+
 
 ?>
