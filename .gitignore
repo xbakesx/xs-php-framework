@@ -4,3 +4,5 @@
 .project
 
 .settings/
+
+nginx/xs-php-framework_dev.conf

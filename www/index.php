@@ -99,7 +99,7 @@ if (file_exists($viewFile))
 		if (file_exists('../view/user/login.php'))
 		{
 			include_once '../controller/UserController.php';
-			$controller = new UserController();
+			$controller = new UserController($app);
 			if (method_exists($controller, 'login'))
 			{
 				$viewData = $controller->login($controllerArgs, $get);
