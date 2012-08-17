@@ -224,12 +224,17 @@ abstract class DatabaseModel implements PersistentStore
         return $h;
     }
     
-    private function populate($array)
+    public function populate($array)
     {
         foreach ($array as $key => $value)
         {
             $this->$key = $value; 
         }
+    }
+    
+    public function toArray()
+    {
+        return $this->getSetMemberVariables();
     }
     
     private function getSetMemberVariables()
