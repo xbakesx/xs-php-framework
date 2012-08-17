@@ -2,18 +2,13 @@
 
 class UserModel extends DatabaseModel 
 {
-    private $email;
-    private $password;
-    private $lastLogin;
-    
-    function __construct()
-    {
-        
-    }
+    protected $email;
+    protected $password;
+    protected $last_login;
     
     public function setLastLogin()
     {
-        $this->lastLogin = date('Y-m-d h:M:s');
+        $this->last_login = date('Y-m-d H:i:s');
     }
     
     public function getEmail()
@@ -29,5 +24,15 @@ class UserModel extends DatabaseModel
     public function setPassword($password)
     {
         $this->password = $password;
+    }
+    
+    public function getTable()
+    {
+        return 'user';
+    }
+    
+    public function getDatabaseConnection()
+    {
+        return App::$DATABASE_CONNECTIONS[App::USER_DB];
     }
 }

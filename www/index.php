@@ -3,6 +3,7 @@
 session_start();
 
 require_once '../framework/controller/controller.php';
+require_once '../framework/app.php';
 require_once '../framework/model/model.php';
 require_once '../framework/db.php';
 require_once '../framework/util.php';
@@ -10,6 +11,7 @@ require_once '../conf/app.php';
 
 // configure app
 $app = new App();
+App::$DATABASE_CONNECTIONS = $app->getDatabaseConnections();
 
 // parse url
 $path = explode('/', $_SERVER['REQUEST_URI']);
@@ -39,20 +41,25 @@ $controllerMethod = divide($controllerMethod, '.', true);
 $controllerArgs = $path;
 
 $controllerFile = '../controller/'.$controllerName.'.php';
-$modelFile = '../model/'.$prefix.'.php';
+$modelFile = '../model/'.$prefix.'Model.php';
 $viewFile = '../view/'.$prefix.'/'.$controllerMethod.'.php';
 $viewData = array();
+
+if (file_exists($modelFile))
+{
+    include_once $modelFile;
+}
 
 if (file_exists($controllerFile))
 {
 	include_once $controllerFile;
-	$controller = new $controllerName;
+	$controller = new $controllerName($app);
 
 	if ($controller->isAuthorized())
 	{
 		if (method_exists($controller, $controllerMethod))
 		{
-			$viewData = $controller->$controllerMethod($controllerArgs);
+		    $viewData = $controller->$controllerMethod($controllerArgs);
 		}
 		else
 		{

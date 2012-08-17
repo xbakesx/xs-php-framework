@@ -7,13 +7,19 @@ class UserController extends Controller
         return true;
     }
     
+    public function index()
+    {
+        
+    }
+    
     public function login()
     {
         $user = new UserModel();
+        $user->connect();
         $users = $user->search();
         unset($user);
         
-        return array('activeUsers' => count($users));
+        return array('activeUsers' => $users);
     }
     
     public function authorize()
@@ -123,8 +129,13 @@ class UserController extends Controller
         return $this->json($user);
     }
     
+    /**
+     * @todo implement this with crypt and a persisted salt per user
+     * @param string $password password to hash
+     * @return a one-way hash representing the password
+     */
     private function hashPassword($password)
     {
-        return crypt($password);
+        return sha1($password);
     }
 }
