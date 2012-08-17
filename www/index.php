@@ -95,6 +95,11 @@ if (file_exists($viewFile))
 	}
 	else
 	{
+	    if (file_exists('../model/UserModel.php'))
+	    {
+	        include_once('../model/UserModel.php');
+	    }
+	    
 		//@TODO: magic currently happening with the login page.
 		if (file_exists('../view/user/login.php'))
 		{
@@ -102,7 +107,7 @@ if (file_exists($viewFile))
 			$controller = new UserController($app);
 			if (method_exists($controller, 'login'))
 			{
-				$viewData = $controller->login($controllerArgs, $get);
+				$viewData = $controller->login($controllerArgs);
 			}
 			
 			include_once '../view/user/login.php';
