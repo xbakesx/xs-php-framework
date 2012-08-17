@@ -4,7 +4,12 @@ class IndexController extends Controller
 {
     public function isAuthorized()
     {
-        return true;
+        if(isset($_SESSION['auth'])){
+    		return true;
+        }
+        else {
+        	return false;
+        }
     }
     
     public function index($args)

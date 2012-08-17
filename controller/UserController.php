@@ -15,7 +15,6 @@ class UserController extends Controller
     public function login()
     {
         $user = new UserModel();
-        $user->connect();
         $users = $user->search();
         unset($user);
         
@@ -24,19 +23,20 @@ class UserController extends Controller
     
     public function authorize()
     {
-        $email = $_POST['email'];
-        $password = $this->hashPassword($_POST['password']);
-        
         $ret = array();
         
         $user = new UserModel();
-        if (count($user->search()) == 1)
+        $user->setEmail($_POST['email']);
+        $user->setPassword($this->hashPassword($_POST['password']));
+        
+        if ($user->query() == 1)
         {
             try
             {
+            	$user = $user->next();
                 $user->setLastLogin();
                 $user->update();
-                $_SESSION['auth'] = array_shift($user);
+                $_SESSION['auth'] = $user->toArray();
                 $ret = $user;
             }
             catch (UpdateException $ex)

@@ -7,7 +7,7 @@ class App extends BaseApp
     public function getDatabaseConnections()
     {
         return array(
-            App::USER_DB => new MySQLDatabaseConnection('127.0.0.1', 'root', '', 'xs')
+            App::USER_DB => new MySQLDatabaseConnection('127.0.0.1', 'test-xs', 'vGGRCPBWVbnM4YBT', 'xs')
         );
     }
     
@@ -48,6 +48,6 @@ class App extends BaseApp
     
     public function getJs()
     {
-        return array();
+        return array('http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js');
     }
 }
