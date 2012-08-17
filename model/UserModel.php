@@ -31,8 +31,8 @@ class UserModel extends DatabaseModel
         return 'user';
     }
     
-    public function getDatabaseConnection()
+    public function getDatabaseConnectionKey()
     {
-        return App::$DATABASE_CONNECTIONS[App::USER_DB];
+        return App::USER_DB;
     }
 }

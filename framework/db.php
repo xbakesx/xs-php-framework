@@ -4,14 +4,22 @@
  * This will be filled with database specific things.
  * It is loaded on every page, be frivilous.
  */
+abstract class DatabaseConnection {
+	protected $_host, $_username, $_password, $_databaseName;
 
+	public function __construct($host, $username, $password, $database){
+		$this->_host = $host;
+		$this->_username = $username;
+		$this->_password = $password;
+		$this->_databaseName = $database;
+	}
+}
 /**
  * Stores a MySQL database connection.
  */
-class MySQLDatabaseConnection
+class MySQLDatabaseConnection extends DatabaseConnection
 {
-    private $host, $username, $password, $new_link, $client_flags;
-    private $databaseName;
+    private $_newLink, $_clientFlags;
 
     /**
      * @param string $host
@@ -22,63 +30,59 @@ class MySQLDatabaseConnection
      */
     public function __construct($host, $username=null, $password=null, $databaseName=null, $new_link=null, $client_flags = null)
     {
-        $this->host = $host;
-        $this->username = $username;
-        $this->password = $password;
-        $this->new_link = $new_link;
-        $this->client_flags = $client_flags;
-        
-        $this->databaseName = $databaseName;
+    	parent::__construct($host, $username, $password, $databaseName);
+        $this->_newLink = $new_link;
+        $this->_clientFlags = $client_flags;
     }
 
     /**
      * @return string the host
      */
     public function getHost() {
-        return $this->host;
+        return $this->_host;
     }
     /**
      * @return string the username
      */
     public function getUsername() {
-        return $this->username;
+        return $this->_username;
     }
     /**
      * @return string the password
      */
     public function getPassword() {
-        return $this->password;
+        return $this->_password;
     }
     /**
      * @return boolean see mysql_connect for behavior
      */
     public function getNewLink() {
-        return $this->new_link;
+        return $this->_newLink;
     }
     /**
      * @return number flags
      */
     public function getClientFlags() {
-        return $this->client_flags;
+        return $this->_clientFlags;
     }
     
     /**
      * @return string the name of the database to connect to 
      */
     public function getDatabaseName() {
-        return $this->databaseName;
+        return $this->_databaseName;
     }
 
 }
 
 class MySQLException extends Exception
 {
-    private $query;
+    private $_query;
     
     public function __construct($query, $error)
     {
         parent::__construct($error);
-        $this->query = $query;
+        $this->_query = $query;
     }
     
     public function debug()
