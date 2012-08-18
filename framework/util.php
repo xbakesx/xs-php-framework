@@ -7,7 +7,7 @@
 
 function debug($var)
 {
-    echo '<pre>';
+	echo '<pre>';
     if (is_object($var))
     {
         var_dump($var);

@@ -1,4 +1,4 @@
-<?php debug($_SESSION);?>
+<?php debug($_SESSION); ?>
 <div class="well">
 	<h2>You Won't Read This Anyway</h2>
 	<form action="/user/authorize" id="userLoginForm" class="form-horizontal" method="post" accept-charset="utf-8">

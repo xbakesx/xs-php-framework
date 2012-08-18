@@ -6,3 +6,5 @@
 .settings/
 
 nginx/xs-php-framework_dev.conf
+
+.DS_Store

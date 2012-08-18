@@ -12,6 +12,10 @@ class IndexController extends Controller
         }
     }
     
+    public function requiresAuthorization(){
+    	return true;
+    }
+    
     public function index($args)
     {
         return null;

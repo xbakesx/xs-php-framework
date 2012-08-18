@@ -21,10 +21,13 @@ class UserController extends Controller
         return array('activeUsers' => $users);
     }
     
+    public function register(){
+    	return '';
+    }
+    
     public function authorize()
     {
         $ret = array();
-        
         $user = new UserModel();
         $user->setEmail($_POST['email']);
         $user->setPassword($this->hashPassword($_POST['password']));
@@ -71,7 +74,6 @@ class UserController extends Controller
         try
         {
             $user->create();
-            
             return $this->authorize();
         }
         catch (CreateException $ex)

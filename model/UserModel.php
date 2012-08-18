@@ -5,6 +5,7 @@ class UserModel extends DatabaseModel
     protected $email;
     protected $password;
     protected $last_login;
+    protected $auth_level;
     
     public function setLastLogin()
     {
@@ -13,7 +14,7 @@ class UserModel extends DatabaseModel
     
     public function getEmail()
     {
-        return $this->getEmail();
+        return $this->email;
     }
     
     public function setEmail($email)

@@ -3,6 +3,7 @@
 interface ControllerInterface 
 {
     public function isAuthorized();
+    public function requiresAuthorization();
     
     public function getDoctype();
     public function getCharSet();
@@ -33,6 +34,10 @@ abstract class Controller implements ControllerInterface
     {
         header('location:'.$url);
         exit;
+    }
+    
+    public function requiresAuthorization(){
+    	return true;
     }
     
     public function json($data)

@@ -75,7 +75,7 @@ require_once('../framework/header.php');
 
 if (file_exists($viewFile))
 {
-	if (!isset($controller) || $controller->isAuthorized())
+	if (!isset($controller) || $controller->isAuthorized() || !$controller->requiresAuthorization())
 	{
 		try
 		{
@@ -95,7 +95,8 @@ if (file_exists($viewFile))
 	}
 	else
 	{
-	    if (file_exists('../model/UserModel.php'))
+	    
+		if (file_exists('../model/UserModel.php'))
 	    {
 	        include_once('../model/UserModel.php');
 	    }

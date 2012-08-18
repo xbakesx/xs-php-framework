@@ -18,7 +18,7 @@ class App extends BaseApp
     
     public function getFaviconUrl()
     {
-        return 'http://www.robotsidekick.com/images/butler_favicon.png';
+        return '';
     }
     
     public function getAuthor()
@@ -43,7 +43,7 @@ class App extends BaseApp
     
     public function getCss()
     {
-        return array('structure.css','common.css');
+        return array('bootstrap.min.css');
     }
     
     public function getJs()

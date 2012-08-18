@@ -68,5 +68,9 @@ abstract class BaseApp implements AppInterface
     {
         return true;
     }
+    
+    final public function requiresAuthorization(){
+    	//return true;
+    }
 }
 
