@@ -75,7 +75,7 @@ require_once('../framework/header.php');
 
 if (file_exists($viewFile))
 {
-	if (!isset($controller) || $controller->isAuthorized() || !$controller->requiresAuthorization())
+	if (!isset($controller) || $controller->isAuthorized())
 	{
 		try
 		{
