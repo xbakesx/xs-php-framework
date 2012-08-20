@@ -1,6 +1,6 @@
 <?php
 
-class UserModel extends DatabaseModel 
+class UserModel extends MySQLModel 
 {
     protected $email;
     protected $password;

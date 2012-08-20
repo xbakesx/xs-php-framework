@@ -1,9 +1,14 @@
 <?php
 
+require_once '../model/ClassModel.php';
+require_once '../model/TeacherModel.php';
+
 class IndexController extends Controller
 {
     public function isAuthorized()
     {
+        return true;
+        
         if(isset($_SESSION['auth'])){
     		return true;
         }
@@ -18,6 +23,11 @@ class IndexController extends Controller
     
     public function index($args)
     {
-        return null;
+        $ret = array();
+        
+        $classes = new ClassModel(array(ClassModel::TEACHER_ASSOC));
+        
+        $ret = $classes->search();
+        return $ret;
     }
 }
