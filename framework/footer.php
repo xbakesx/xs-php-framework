@@ -7,7 +7,7 @@
             include_once '../conf/'.$postcontentFile;
         }
         
-        $jsFiles = isset($controller) && count($controller->getJs()) > 0 ? $controller->getJs() : $app->getJs();
+        $jsFiles = isset($controller) && $controller->getJs() !== FALSE ? $controller->getJs() : $app->getJs();
     	foreach ($jsFiles as $js)
     	{
     	    $url = false;

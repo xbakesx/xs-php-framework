@@ -80,12 +80,12 @@ abstract class Controller implements ControllerInterface
     
     public function getCss()
     {
-        return array();
+        return FALSE;
     }
     
     public function getJs()
     {
-        return array();
+        return FALSE;
     }
     
     public function getHeaderFile()
