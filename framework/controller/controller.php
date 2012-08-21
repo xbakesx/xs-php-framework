@@ -13,8 +13,8 @@ interface ControllerInterface
     public function getCss();
     public function getJs();
     
-    public function getPreContentFile();
-    public function getPostContentFile();
+    public function getHeaderFile();
+    public function getFooterFile();
     public function getModels();
 }
 
@@ -88,18 +88,19 @@ abstract class Controller implements ControllerInterface
         return array();
     }
     
-    public function getPreContentFile()
+    public function getHeaderFile()
     {
         return 'header.php';
     }
     
-    public function getPostContentFile()
+    public function getFooterFile()
     {
         return 'footer.php';
     }
     
-    public function getModels(){
-      return array();
+    public function getModels()
+    {
+        return array();
     }
 }
 

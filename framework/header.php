@@ -51,7 +51,8 @@
         	    echo '<link rel="shortcut icon" href="'.$favicon.'">'."\n";
         	}
         	
-        	foreach ($app->getCss() as $css)
+        	$cssFiles = isset($controller) && count($controller->getCss()) > 0 ? $controller->getCss() : $app->getCss();
+        	foreach ($cssFiles as $css)
         	{
         	    $url = false;
         	    // urls that start / or http:// are absolute, respect that.
@@ -74,10 +75,10 @@
     </head>
   <body>
   <?php
-        $precontentFile = isset($controller) && strlen($controller->getPreContentFile()) != 0 ? $controller->getPreContentFile() : $app->getPreContentFile();
-      if (strlen($precontentFile) != 0)
-      {
-          include_once '../conf/'.$precontentFile;
-      }
+        $precontentFile = isset($controller) && strlen($controller->getHeaderFile()) != 0 ? $controller->getHeaderFile() : $app->getHeaderFile();
+        if (strlen($precontentFile) != 0)
+        {
+            include_once '../conf/'.$precontentFile;
+        }
   ?>
     

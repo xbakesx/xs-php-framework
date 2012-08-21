@@ -49,11 +49,11 @@ abstract class BaseApp implements AppInterface
     {
         return AppInterface::UTF8;
     }
-    public function getPreContentFile()
+    public function getHeaderFile()
     {
         return 'header.php';
     }
-    public function getPostContentFile()
+    public function getFooterFile()
     {
         return 'footer.php';
     }
@@ -69,8 +69,9 @@ abstract class BaseApp implements AppInterface
         return true;
     }
     
-    final public function requiresAuthorization(){
-    	//return true;
+    final public function getModels()
+    {
+        return array();
     }
 }
 

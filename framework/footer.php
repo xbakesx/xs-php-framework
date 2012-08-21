@@ -1,13 +1,14 @@
     <?php
     try
     {
-        $postcontentFile = (isset($controller) && strlen($controller->getPostContentFile()) != 0) ? $controller->getPostContentFile() : $app->getPostContentFile();
+        $postcontentFile = (isset($controller) && strlen($controller->getFooterFile()) != 0) ? $controller->getFooterFile() : $app->getFooterFile();
         if (strlen($postcontentFile) != 0)
         {
             include_once '../conf/'.$postcontentFile;
         }
         
-    	foreach ($app->getJs() as $js)
+        $jsFiles = isset($controller) && count($controller->getJs()) > 0 ? $controller->getJs() : $app->getJs();
+    	foreach ($jsFiles as $js)
     	{
     	    $url = false;
     	    // urls that start / or http:// are absolute, respect that.
