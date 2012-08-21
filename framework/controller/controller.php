@@ -15,6 +15,7 @@ interface ControllerInterface
     
     public function getPreContentFile();
     public function getPostContentFile();
+    public function getModels();
 }
 
 abstract class Controller implements ControllerInterface
@@ -95,6 +96,10 @@ abstract class Controller implements ControllerInterface
     public function getPostContentFile()
     {
         return 'footer.php';
+    }
+    
+    public function getModels(){
+      return array();
     }
 }
 
