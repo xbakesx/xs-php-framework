@@ -75,10 +75,11 @@
     </head>
   <body>
   <?php
-        $precontentFile = isset($controller) && strlen($controller->getHeaderFile()) != 0 ? $controller->getHeaderFile() : $app->getHeaderFile();
-        if (strlen($precontentFile) != 0)
-        {
-            include_once '../conf/'.$precontentFile;
-        }
+      $appHeader = $app->getHeaderFile();
+      $precontentFile = isset($controller) && $controller->getHeaderFile() !== $appHeader ? $controller->getHeaderFile() : $appHeader;
+      if ($precontentFile)
+      {
+          include_once '../conf/'.$precontentFile;
+      }
   ?>
     
