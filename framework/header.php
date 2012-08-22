@@ -67,9 +67,9 @@
         	    echo '<link rel="stylesheet" type="text/css" href="'.$url.'">'."\n";
         	}
         	
-        	if (file_exists('css/'.$prefix.'.css'))
+        	if (file_exists('css/'.$lowerPrefix.'.css'))
         	{
-        	    echo '<link rel="stylesheet" type="text/css" href="/css/'.$prefix.'.css">';
+        	    echo '<link rel="stylesheet" type="text/css" href="/css/'.$lowerPrefix.'.css">';
         	}
  	    ?>
     </head>

@@ -23,9 +23,9 @@
             }
             echo '<script type="text/javascript" src="'.$url.'"></script>'."\n";
         }
-        if (file_exists('js/'.$prefix.'.js'))
+        if (file_exists('js/'.$lowerPrefix.'.js'))
         {
-            echo "\t".'<script type="text/javascript" src="/js/'.$prefix.'.js"></script>';
+            echo "\t".'<script type="text/javascript" src="/js/'.$lowerPrefix.'.js"></script>';
         }
     }
     catch (Exception $e)
