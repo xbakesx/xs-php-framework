@@ -58,6 +58,8 @@ if (file_exists($modelFile))
     include_once $modelFile;
 }
 
+$viewException = NULL;
+
 if (file_exists($controllerFile))
 {
     include_once $controllerFile;
@@ -75,22 +77,30 @@ if (file_exists($controllerFile))
 
     if ($controller->isAuthorized())
     {
-        if (method_exists($controller, $controllerMethod))
+        try
         {
-            $viewData = $controller->$controllerMethod($controllerArgs);
-        }
-        else if (method_exists($controller, 'index'))
-        {
-            // add the method back in as a controller argument
-            array_unshift($controllerArgs, $controllerMethod);
-            $viewData = $controller->index($controllerArgs);
-        }
-        else
-        {
-            if ($app->isDebug())
+            if (method_exists($controller, $controllerMethod))
             {
-                echo '<pre>'.get_class($controller).' has no method '.$controllerMethod.'</pre>';
+                $viewData = $controller->$controllerMethod($controllerArgs);
             }
+            else if (method_exists($controller, 'index'))
+            {
+                // add the method back in as a controller argument
+                array_unshift($controllerArgs, $controllerMethod);
+                $viewData = $controller->index($controllerArgs);
+                $viewFile = '../view/'.$lowerPrefix.'/index.php';
+            }
+            else
+            {
+                if ($app->isDebug())
+                {
+                    echo '<pre>'.get_class($controller).' has no method '.$controllerMethod.'</pre>';
+                }
+            }
+        }
+        catch (Exception $ex)
+        {
+            $viewException = $ex;
         }
     }
 }
