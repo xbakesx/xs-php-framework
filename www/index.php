@@ -79,6 +79,12 @@ if (file_exists($controllerFile))
         {
             $viewData = $controller->$controllerMethod($controllerArgs);
         }
+        else if (method_exists($controller, 'index'))
+        {
+            // add the method back in as a controller argument
+            array_unshift($controllerArgs, $controllerMethod);
+            $viewData = $controller->index($controllerArgs);
+        }
         else
         {
             if ($app->isDebug())
