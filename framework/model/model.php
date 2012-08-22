@@ -109,7 +109,6 @@ abstract class DatabaseModel extends Model implements PersistentStore
 	 
 	public static $connectionEstablshed = array();
 	private $_connectionKey;
-	private $_queryHandle;
 	protected $_joinArray;
 
 	/**
@@ -172,6 +171,8 @@ abstract class DatabaseModel extends Model implements PersistentStore
 abstract class MySQLModel extends DatabaseModel
 {
     private $_connection;
+	private $_queryHandle;
+	private $_query;
     
 	abstract public function getTable();
     
@@ -373,6 +374,14 @@ abstract class MySQLModel extends DatabaseModel
 
 		return $vars;
 	}
+	
+	/**
+	 * @return the sql query that was used in the last call to query() or search()
+	 */
+	protected final function getLastQuery()
+	{
+	    return $this->_query;
+	}
 
 	private function sqlQuery($sql)
 	{
@@ -384,6 +393,7 @@ abstract class MySQLModel extends DatabaseModel
 		}
 		
 		$this->_queryHandle = $h;
+		$this->_query = $sql;
 		return $h;
 	}
 
