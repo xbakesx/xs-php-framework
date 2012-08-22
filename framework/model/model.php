@@ -309,16 +309,11 @@ abstract class MySQLModel extends DatabaseModel
 	        }
 	    }
 	    
-	    if (empty($props))
-	    {
-	        $columns .= $columnSep.$table.'.*';
-	    }
-	    else
+	    $columns .= $columnSep.$table.'.*';
+	    if (!empty($props))
 	    {
 			foreach ($props as $col => $value)
 			{
-				$columns .= $columnSep.$table.'.'.$this->escapeColumn($col).' as '.$this->escapeColumn($this->getTable().'_'.$col);
-				$columnSep = ',';
 				$conditions .= $conditionSep.$table.'.'.$this->escapeColumn($col).' = \''.mysql_real_escape_string($value).'\'';
 				$conditionSep = ' and ';
 			}
