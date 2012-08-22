@@ -36,6 +36,8 @@ if ($prefix === null || strlen($prefix) == 0)
     $prefix = $defaultName;
 }
 $prefix = divide($prefix, '.', true);
+$lowerPrefix = $prefix;
+$prefix = strtoupper(substr($prefix, 0, 1)).substr($prefix, 1);
 
 $controllerName = $prefix.$controllerSuffix;
 $controllerMethod = array_shift($path);
@@ -48,7 +50,7 @@ $controllerArgs = $path;
 
 $controllerFile = '../controller/'.$controllerName.'.php';
 $modelFile = '../model/'.$prefix.$modelSuffix.'.php';
-$viewFile = '../view/'.$prefix.'/'.$controllerMethod.'.php';
+$viewFile = '../view/'.$lowerPrefix.'/'.$controllerMethod.'.php';
 $viewData = array();
 
 if (file_exists($modelFile))
@@ -62,9 +64,11 @@ if (file_exists($controllerFile))
     /* @var $controller Controller */
     $controller = new $controllerName($app);
 
-    foreach($controller->getModels() as $model){
+    foreach($controller->getModels() as $model)
+    {
         $model = '../model/'.$model;
-        if(file_exists($model)){
+        if(file_exists($model))
+        {
             include_once $model;
         }
     }
