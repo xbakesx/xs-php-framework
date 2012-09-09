@@ -252,10 +252,10 @@ abstract class MySQLModel extends DatabaseModel
 	/**
 	 * @see PersistentStore::search()
 	 */
-	public function search()
+	public function search($listOfSpecialClause=false)
 	{
 		// takes the set member variables and returns an array of of matching rows
-		$count = $this->query();
+		$count = $this->query($listOfSpecialClause);
 
 		$ret = array();
 		while ($model = $this->fetch())
@@ -271,7 +271,7 @@ abstract class MySQLModel extends DatabaseModel
 	 * @return the number of results
 	 * @throws SearchException on an error
 	 */
-	public function query()
+	public function query($listOfSpecialClause=false)
 	{
 		$props = $this->getSetMemberVariables();
 
@@ -317,6 +317,16 @@ abstract class MySQLModel extends DatabaseModel
 				$conditions .= $conditionSep.$table.'.'.$this->escapeColumn($col).' = \''.mysql_real_escape_string($value).'\'';
 				$conditionSep = ' and ';
 			}
+	    }
+	    
+	    if($listOfSpecialClause){
+	    	//@TODO: update - this is happening right now becuase if no where condition is set; it will just look like
+	    	//WHERE Order By foo desc
+	    	//instead we need to add 1 in there so that it is a valid query.
+	    	if(empty($conditions)){
+	    		$conditions.=' 1 ';
+	    	}
+	    	$conditions.=$this->handleSpecialClauses($listOfSpecialClause);
 	    }
 	    
         if (empty($conditions))
@@ -421,7 +431,131 @@ abstract class MySQLModel extends DatabaseModel
 	{
 	    return '`'.$column.'`';
 	}
+	
+	private function handleSpecialClauses($specialClauses){
+		$keywordItems = array();
+		if(is_array($specialClauses)){
+			foreach($specialClauses as $clause){
+				/* @var $clause MySQLSpecialClause */
+				if(!isset($keywordItems[$clause->getKeyword()])){
+					$keywordItems[$clause->getKeyword()]=array();
+				}
+				$keywordItems[$clause->getKeyword()][] = $clause->getData().',';
+			}
+		}
+		else {
+			$keywordItems[$specialClauses->getKeyword()][] = $specialClauses->getData().' ';
+		}
+		
+		
+		
+		$strRet = '';
+		if(isset($keywordItems['group by'])){
+			$arrayItem['group by'] = $keywordItems['group by'];
+			$strRet .= MySQLSpecialClause::buildCondition($arrayItem);
+			unset($keywordItems['group by']);
+			$arrayItem=array();
+		}
+		
+		if(isset($keywordItems['order by'])){
+			$arrayItem['order by'] = $keywordItems['order by'];
+			$strRet .= MySQLSpecialClause::buildCondition($arrayItem);
+			unset($keywordItems['order by']);
+			$arrayItem=array();
+		}
+		
+		if(isset($keywordItems['limit'])){
+			$arrayItem['limit'] = $keywordItems['limit'];
+			$strRet .= MySQLSpecialClause::buildCondition($arrayItem);
+			unset($keywordItems['limit']);
+		}
+		
+		
+		return $strRet;
+	}
 
+}
+
+
+class MySQLSpecialClause{
+	private $_keyword;
+	private $_data = array();
+
+	public function __construct($keyword, $data){
+		$this->_keyword=$keyword;
+		$this->_data[] = $data;
+	}
+
+	public static function buildCondition($bundledConditions){
+		$returnString = ' ';
+		foreach($bundledConditions as $keyword =>$value){
+			$returnString.=' '.$keyword.' ';
+			if(is_array($value)){
+				//This is only currently for Order By.
+				foreach($value as $string){
+					$returnString.=$string;
+				}
+			}
+			else {
+				$returnString .= $value.'';
+			}
+			$returnString = substr($returnString, 0,-1);
+		}
+		return ($returnString);
+	}
+
+	public function getKeyword(){
+		return trim(strtolower($this->_keyword));
+	}
+
+	protected function addAdditionalData($data){
+		$this->_data[] = $data;
+	}
+
+	public function getData(){
+		$data = $this->formatDataElement($this->_data);
+		//Handles for limit which only has one value following it.
+		if(strlen($data)>1){
+			$data= substr($data, 0,-1);
+		}
+		return $data;
+	}
+
+	private function formatDataElement($dataElement){
+		$stringToReturn = '';
+		foreach($dataElement as $value){
+			if(is_array($value)){
+				$stringToReturn .= $this->formatDataElement($value).',';
+			}
+			else {
+				$stringToReturn.=' '.$value.'';
+			}
+		}
+		return trim($stringToReturn);
+	}
+
+
+}
+
+class MySQLOrderBy extends MySQLSpecialClause {
+	const Ascending = 'ASC';
+	const Descending = 'DESC';
+
+	public function __construct($column, $order){
+		parent::__construct('Order By ', array($column, $order));
+	}
+}
+
+class MySQLGroupBy extends MySQLSpecialClause {
+	public function __construct($column){
+		parent::__construct('Group By ', $column);
+	}
+}
+
+class MySQLLimit extends MySQLSpecialClause {
+	public function __construct($amount){
+		parent::__construct('Limit', $amount);
+	}
 }
 
 class UpdateException extends Exception
