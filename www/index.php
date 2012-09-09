@@ -162,11 +162,11 @@ function includeElement($element, $location, $addtItem=false){
 	foreach($element as $item)
 	{
 		$itemLocation = '../'.$location.'/'.$item;
-		if(file_exists($itemLocation))
+		$objName = divide($item,'.',true);
+		if(file_exists($itemLocation) && !class_exists($objName))
 		{
 			include_once $itemLocation;
 			if($addtItem){
-				$objName = divide($item,'.',true);
 				$genObj = new $objName();
 				includeElement($genObj->$addtItem['method'](), $addtItem['label']);
 			}
