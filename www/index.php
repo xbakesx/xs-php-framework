@@ -66,14 +66,10 @@ if (file_exists($controllerFile))
     /* @var $controller Controller */
     $controller = new $controllerName($app);
 
-    foreach($controller->getModels() as $model)
-    {
-        $model = '../model/'.$model;
-        if(file_exists($model))
-        {
-            include_once $model;
-        }
-    }
+    
+    //getExtermals
+    includeElement($controller->getModels(), 'model');
+    includeElement($controller->getComponents(), 'component', array('method'=>'getModels', 'label'=>'model'));
 
     if ($controller->isAuthorized())
     {
@@ -162,6 +158,21 @@ else
     include_once '../framework/_404.php';
 }
 
+function includeElement($element, $location, $addtItem=false){
+	foreach($element as $item)
+	{
+		$itemLocation = '../'.$location.'/'.$item;
+		if(file_exists($itemLocation))
+		{
+			include_once $itemLocation;
+			if($addtItem){
+				$objName = divide($item,'.',true);
+				$genObj = new $objName();
+				includeElement($genObj->$addtItem['method'](), $addtItem['label']);
+			}
+		}
+	}
+}
 
 require_once('../framework/footer.php');
 
