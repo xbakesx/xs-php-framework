@@ -102,5 +102,9 @@ abstract class Controller implements ControllerInterface
     {
         return array();
     }
+    
+    public function getComponents(){
+    	return array();
+    }
 }
 

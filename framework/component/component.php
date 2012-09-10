@@ -30,3 +30,4 @@ abstract class Component
         includeElement($models, 'model');
 	}
 }
+?>
