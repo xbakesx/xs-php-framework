@@ -7,9 +7,9 @@ class UserController extends Controller
         return true;
     }
     
-    public function index()
+    public function index($args)
     {
-        
+        return null;
     }
     
     public function login()
@@ -21,7 +21,8 @@ class UserController extends Controller
         return array('activeUsers' => $users);
     }
     
-    public function register(){
+    public function register()
+    {
     	return '';
     }
     

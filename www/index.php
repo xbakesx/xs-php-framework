@@ -3,17 +3,18 @@
 session_start();
 
 require_once '../framework/controller/controller.php';
+require_once '../framework/component/component.php';
 require_once '../framework/app.php';
 require_once '../framework/model/model.php';
 require_once '../framework/db.php';
 require_once '../framework/util.php';
 require_once '../conf/app.php';
+require_once '../component/components.php';
 
 //Defaults
 $controllerSuffix = 'Controller';
 $modelSuffix = 'Model';
 $defaultName = 'index';
-
 
 // configure app
 $app = new App();
@@ -55,25 +56,19 @@ $viewData = array();
 
 if (file_exists($modelFile))
 {
-    include_once $modelFile;
+    require_once $modelFile;
 }
 
 $viewException = NULL;
 
 if (file_exists($controllerFile))
 {
-    include_once $controllerFile;
+    require_once $controllerFile;
     /* @var $controller Controller */
     $controller = new $controllerName($app);
 
-    foreach($controller->getModels() as $model)
-    {
-        $model = '../model/'.$model;
-        if(file_exists($model))
-        {
-            include_once $model;
-        }
-    }
+    // get external models
+    includeElement($controller->getModels(), 'model');
 
     if ($controller->isAuthorized())
     {
@@ -106,6 +101,11 @@ if (file_exists($controllerFile))
 }
 
 require_once('../framework/header.php');
+
+if ($app->isDebug() && $viewException)
+{
+    debug($viewException);
+}
 
 if (file_exists($viewFile))
 {
@@ -162,6 +162,19 @@ else
     include_once '../framework/_404.php';
 }
 
-
 require_once('../framework/footer.php');
+
+
+function includeElement($items, $type)
+{
+    foreach($items as $item)
+    {
+        $itemLocation = '../'.$type.'/'.$item;
+        $objName = divide($item,'.',true);
+        if(file_exists($itemLocation) && !class_exists($objName))
+        {
+            require_once $itemLocation;
+        }
+    }
+}
 

@@ -1,6 +1,7 @@
 <?php
 
 require_once '../model/ClassModel.php';
+require_once '../model/StudentModel.php';
 require_once '../model/TeacherModel.php';
 
 class IndexController extends Controller
@@ -18,7 +19,12 @@ class IndexController extends Controller
         }
     }
     
-    public function index($args)
+    public function index()
+    {
+        
+    }
+    
+    public function classes($args)
     {
         $ret = array();
         
@@ -48,6 +54,23 @@ CREATE TABLE `teacher` (
 
             </pre>
 CREATE_TABLE;
+        }
+        
+        return $ret;
+    }
+    
+    public function school($args)
+    {
+        $ret = array();
+        
+        $students = new StudentModel(array(StudentModel::CLASS_STUDENT_MANY_TO_MANY));
+        $students->query();
+        
+        $ret['sql'] = $students->getLastQuery();
+
+        while ($student = $students->fetch())
+        {
+            $ret['students'][] = $student;
         }
         
         return $ret;

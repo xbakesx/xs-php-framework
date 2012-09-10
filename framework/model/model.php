@@ -170,6 +170,9 @@ abstract class DatabaseModel extends Model implements PersistentStore
 
 abstract class MySQLModel extends DatabaseModel
 {
+    const MANY_TO_MANY = 1;
+    const ONE_TO_MANY = 2;
+    
     private $_connection;
 	private $_queryHandle;
 	private $_query;
@@ -296,16 +299,30 @@ abstract class MySQLModel extends DatabaseModel
 	            $foreignModel = new $foreignModel();
 	            $foreignTable = $this->escapeTable($foreignModel->getTable());
 	            
-	            $tables .= ', '.$foreignTable;
-	            
 	            foreach ($foreignModel->getMemberVariables() as $var => $value)
 	            {
-    	            $columns .= $columnSep.$foreignTable.'.'.$this->escapeColumn($var).' as '.$this->escapeColumn($foreignModel->getTable().'_'.$var);
-    				$columnSep = ',';
+	                $columns .= $columnSep.$foreignTable.'.'.$this->escapeColumn($var).' as '.$this->escapeColumn($foreignModel->getTable().'_'.$var);
+	                $columnSep = ',';
 	            }
 	            
-	            $conditions .= $conditionSep.$table.'.'.$this->escapeColumn($assoc['localKey']).' = '.$foreignTable.'.'.$this->escapeColumn($assoc['foreignKey']);
-				$conditionSep = ' and ';
+	            if (isset($assoc['relationship']) && $assoc['relationship'] === MySQLModel::MANY_TO_MANY)
+	            {
+	                $joinTable = $this->escapeTable($assoc['joinTable']);
+	                $tables .= ', '.$assoc['joinTable'].', '.$foreignTable;
+	                
+	                $conditions .= $conditionSep.$table.'.'.$this->escapeColumn($assoc['localKey']).' = '.$joinTable.'.'.$this->escapeColumn($assoc['assocLocalKey']);
+	                $conditionSep = ' and ';
+    	            
+    	            $conditions .= $conditionSep.$joinTable.'.'.$this->escapeColumn($assoc['assocForeignKey']).' = '.$foreignTable.'.'.$this->escapeColumn($assoc['foreignKey']);
+    				$conditionSep = ' and ';
+	            }
+	            else
+	            {
+    	            $tables .= ', '.$foreignTable;
+    	            
+    	            $conditions .= $conditionSep.$table.'.'.$this->escapeColumn($assoc['localKey']).' = '.$foreignTable.'.'.$this->escapeColumn($assoc['foreignKey']);
+    				$conditionSep = ' and ';
+	            }
 	        }
 	    }
 	    
@@ -325,7 +342,7 @@ abstract class MySQLModel extends DatabaseModel
         }
         
 		$this->sqlQuery("select $columns from $tables $where $conditions");
-
+		
 		return mysql_num_rows($this->_queryHandle);
 	}
 
@@ -373,7 +390,7 @@ abstract class MySQLModel extends DatabaseModel
 	/**
 	 * @return the sql query that was used in the last call to query() or search()
 	 */
-	protected final function getLastQuery()
+	public final function getLastQuery()
 	{
 	    return $this->_query;
 	}
