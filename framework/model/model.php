@@ -110,11 +110,13 @@ abstract class DatabaseModel extends Model implements PersistentStore
 	public static $connectionEstablshed = array();
 	private $_connectionKey;
 	protected $_joinArray;
+	protected $_operators;
 
 	/**
 	 * @param array $join an array of keys in getJoinTableAssociations()
+	 * @param array $operators an array of table columns to operators
 	 */
-	public function __construct($join = array())
+	public function __construct($join = array(), $operators = array())
 	{
 	    parent::__construct();
 	    
@@ -129,6 +131,7 @@ abstract class DatabaseModel extends Model implements PersistentStore
 		}
 		
 		$this->_joinArray = $join;
+		$this->_operators = $operators;
 	}
 
 	abstract public function getDatabaseConnectionKey();
@@ -163,6 +166,7 @@ abstract class DatabaseModel extends Model implements PersistentStore
 
 		// remove member vars from this (the parent) class
 		unset($vars['_joinArray']);
+		unset($vars['_operators']);
 
 		return $vars;
 	}
@@ -255,7 +259,7 @@ abstract class MySQLModel extends DatabaseModel
 	/**
 	 * @see PersistentStore::search()
 	 */
-	public function search($listOfSpecialClause=false)
+	public function search($listOfSpecialClause = FALSE)
 	{
 		// takes the set member variables and returns an array of of matching rows
 		$count = $this->query($listOfSpecialClause);
@@ -271,13 +275,13 @@ abstract class MySQLModel extends DatabaseModel
 
 	/**
 	 * Takes the parts of the current model that are set and does a search of the persistence for it.
+	 * @param array $listOfSpecialClause this is an array of MySQLCondition
 	 * @return the number of results
 	 * @throws SearchException on an error
 	 */
-	public function query($listOfSpecialClause=false)
+	public function query($listOfSpecialClause = array())
 	{
 		$props = $this->getSetMemberVariables();
-
 	    $table = $this->escapeTable($this->getTable());
 	    
 	    $where = 'where';
@@ -286,6 +290,13 @@ abstract class MySQLModel extends DatabaseModel
 		$columnSep = '';
 		$conditions = '';
 		$conditionSep = '';
+		$special = '';    // order by, group by, limit
+		
+		// ensure $listOfSpecialClause is an array
+		if (!is_array($listOfSpecialClause))
+		{
+		    $listOfSpecialClause = array($listOfSpecialClause);
+		}
 
 	    $joinAssocs = $this->getJoinTableAssociations();	    
 	    foreach ($joinAssocs as $key => $assoc)
@@ -299,16 +310,13 @@ abstract class MySQLModel extends DatabaseModel
 	            $foreignModel = new $foreignModel();
 	            $foreignTable = $this->escapeTable($foreignModel->getTable());
 	            
-	            foreach ($foreignModel->getMemberVariables() as $var => $value)
-	            {
-	                $columns .= $columnSep.$foreignTable.'.'.$this->escapeColumn($var).' as '.$this->escapeColumn($foreignModel->getTable().'_'.$var);
-	                $columnSep = ',';
-	            }
+	            $columns .= $columnSep.$foreignTable.'.*';
+	            $columnSep = ',';
 	            
 	            if (isset($assoc['relationship']) && $assoc['relationship'] === MySQLModel::MANY_TO_MANY)
 	            {
 	                $joinTable = $this->escapeTable($assoc['joinTable']);
-	                $tables .= ', '.$assoc['joinTable'].', '.$foreignTable;
+	                $tables .= ', '.$this->escapeTable($assoc['joinTable']).', '.$foreignTable;
 	                
 	                $conditions .= $conditionSep.$table.'.'.$this->escapeColumn($assoc['localKey']).' = '.$joinTable.'.'.$this->escapeColumn($assoc['assocLocalKey']);
 	                $conditionSep = ' and ';
@@ -327,23 +335,26 @@ abstract class MySQLModel extends DatabaseModel
 	    }
 	    
 	    $columns .= $columnSep.$table.'.*';
+	    
 	    if (!empty($props))
 	    {
+	        $operators = $this->getOperators($listOfSpecialClause);
+	    
 			foreach ($props as $col => $value)
 			{
-				$conditions .= $conditionSep.$table.'.'.$this->escapeColumn($col).' = \''.mysql_real_escape_string($value).'\'';
+			    $op = '=';
+			    if (isset($operators[$col]))
+			    {
+			        $op = $operators[$col];
+			    }
+				$conditions .= $conditionSep.$table.'.'.$this->escapeColumn($col).' '.$op.' \''.mysql_real_escape_string($value).'\'';
 				$conditionSep = ' and ';
 			}
 	    }
 	    
-	    if($listOfSpecialClause){
-	    	//@TODO: update - this is happening right now becuase if no where condition is set; it will just look like
-	    	//WHERE Order By foo desc
-	    	//instead we need to add 1 in there so that it is a valid query.
-	    	if(empty($conditions)){
-	    		$conditions.=' 1 ';
-	    	}
-	    	$conditions.=$this->handleSpecialClauses($listOfSpecialClause);
+	    if($listOfSpecialClause)
+	    {
+	    	$special = $this->handleSpecialClauses($listOfSpecialClause);
 	    }
 	    
         if (empty($conditions))
@@ -351,7 +362,7 @@ abstract class MySQLModel extends DatabaseModel
             $where = '';
         }
         
-		$this->sqlQuery("select $columns from $tables $where $conditions");
+		$this->sqlQuery("select $columns from $tables $where $conditions $special");
 		
 		return mysql_num_rows($this->_queryHandle);
 	}
@@ -449,22 +460,34 @@ abstract class MySQLModel extends DatabaseModel
 	    return '`'.$column.'`';
 	}
 	
-	private function handleSpecialClauses($specialClauses){
+	private function getOperators($specialClauses)
+	{
+	    $ret = array();
+	    foreach ($specialClauses as $clause)
+	    {
+	        if ($clause instanceof MySQLOperator)
+	        {
+	            $ret[$clause->getColumn()] = $clause->getOperator();
+	        }
+	    }
+	    return $ret;
+	}
+	
+	private function handleSpecialClauses($specialClauses)
+	{
 		$keywordItems = array();
-		if(is_array($specialClauses)){
-			foreach($specialClauses as $clause){
+		foreach($specialClauses as $clause)
+		{
+		    if ($clause instanceof MySQLSpecialClause)
+		    {
 				/* @var $clause MySQLSpecialClause */
-				if(!isset($keywordItems[$clause->getKeyword()])){
+				if(!isset($keywordItems[$clause->getKeyword()]))
+				{
 					$keywordItems[$clause->getKeyword()]=array();
 				}
 				$keywordItems[$clause->getKeyword()][] = $clause->getData().',';
-			}
+		    }
 		}
-		else {
-			$keywordItems[$specialClauses->getKeyword()][] = $specialClauses->getData().' ';
-		}
-		
-		
 		
 		$strRet = '';
 		if(isset($keywordItems['group by'])){
@@ -493,17 +516,25 @@ abstract class MySQLModel extends DatabaseModel
 
 }
 
+interface MySQLCondition {
+    
+} 
 
-class MySQLSpecialClause{
+class MySQLSpecialClause implements MySQLCondition 
+{
 	private $_keyword;
 	private $_data = array();
 
-	public function __construct($keyword, $data){
+	public function __construct($keyword, $data = FALSE){
 		$this->_keyword=$keyword;
-		$this->_data[] = $data;
+		if ($data !== FALSE)
+		{
+		    $this->_data[] = $data;
+		}
 	}
 
-	public static function buildCondition($bundledConditions){
+	public static function buildCondition($bundledConditions)
+	{
 		$returnString = ' ';
 		foreach($bundledConditions as $keyword =>$value){
 			$returnString.=' '.$keyword.' ';
@@ -521,15 +552,18 @@ class MySQLSpecialClause{
 		return ($returnString);
 	}
 
-	public function getKeyword(){
+	public function getKeyword()
+	{
 		return trim(strtolower($this->_keyword));
 	}
 
-	protected function addAdditionalData($data){
+	protected function addAdditionalData($data)
+	{
 		$this->_data[] = $data;
 	}
 
-	public function getData(){
+	public function getData()
+	{
 		$data = $this->formatDataElement($this->_data);
 		//Handles for limit which only has one value following it.
 		if(strlen($data)>1){
@@ -538,7 +572,8 @@ class MySQLSpecialClause{
 		return $data;
 	}
 
-	private function formatDataElement($dataElement){
+	private function formatDataElement($dataElement)
+	{
 		$stringToReturn = '';
 		foreach($dataElement as $value){
 			if(is_array($value)){
@@ -550,8 +585,6 @@ class MySQLSpecialClause{
 		}
 		return trim($stringToReturn);
 	}
-
-
 }
 
 class MySQLOrderBy extends MySQLSpecialClause {
@@ -573,6 +606,28 @@ class MySQLLimit extends MySQLSpecialClause {
 	public function __construct($amount){
 		parent::__construct('Limit', $amount);
 	}
+}
+
+class MySQLOperator implements MySQLCondition {
+    
+    private $column;
+    private $operator;
+    
+    public function __construct($column, $operator)
+    {
+        $this->column = $column;
+        $this->operator = $operator;
+    }
+    
+    public function getColumn()
+    {
+        return $this->column;
+    }
+    
+    public function getOperator()
+    {
+        return $this->operator;
+    }
 }
 
 class UpdateException extends Exception
