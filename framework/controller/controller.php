@@ -30,16 +30,47 @@ abstract class Controller implements ControllerInterface
         $this->app = $app;
     }
     
+    /**
+     * Redirects the user to the url given then exits.
+     * @param string $url url to redirect to
+     */
     public function redirect($url)
     {
         header('location:'.$url);
         exit;
     }
     
+    /**
+     * This function outputs the given argument as json, prints it out and exits.  
+     * @param mixed $data any php object that can be encoded into json by json_encode
+     */
     public function json($data)
     {
         echo json_encode($data);
         exit;
+    }
+    
+    /**
+     * @param string $controller the name of the controller ('IndexController')
+     * @return Controller an instance of the controller name passed in
+     */
+    public function includeController($controller)
+    {
+        return includeController($controller, '../controller/'.$controller.'.php', $this->app);
+    }
+    
+    /**
+     * @param string $method the name of the view you'd like to get
+     * @return string the name of the view file
+     */
+    public function getViewFile($view = FALSE)
+    {
+        if ($method === FALSE)
+        {
+            $trace = array_shift(debug_backtrace());
+            $view = $trace['function'];
+        }
+        return "../view/$view.php";
     }
     
     protected function getDatabaseConnection($key)

@@ -63,12 +63,7 @@ $viewException = NULL;
 
 if (file_exists($controllerFile))
 {
-    require_once $controllerFile;
-    /* @var $controller Controller */
-    $controller = new $controllerName($app);
-
-    // get external models
-    includeElement($controller->getModels(), 'model');
+    $controller = includeController($controllerName, $controllerFile, $app);
 
     if ($controller->isAuthorized())
     {
@@ -176,5 +171,17 @@ function includeElement($items, $type)
             require_once $itemLocation;
         }
     }
+}
+
+function includeController($controllerName, $controllerFile, $app)
+{
+    require_once $controllerFile;
+    /* @var $controller Controller */
+    $controller = new $controllerName($app);
+    
+    // get external models
+    includeElement($controller->getModels(), 'model');
+    
+    return $controller;
 }
 
