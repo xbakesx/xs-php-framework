@@ -185,7 +185,7 @@ function includeController($controllerName, $controllerFile, $app)
     // controller's model
     global $modelSuffix;
     global $controllerSuffix;
-    $modelFile = divide($controllerName, $controllerSuffix, true).$modelSuffix;
+    $modelFile = divide($controllerName, $controllerSuffix, true).$modelSuffix.'.php';
     includeElement(array($modelFile), 'model');
     // get external models
     includeElement($controller->getModels(), 'model');
