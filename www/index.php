@@ -54,11 +54,6 @@ $modelFile = '../model/'.$prefix.$modelSuffix.'.php';
 $viewFile = '../view/'.$lowerPrefix.'/'.$controllerMethod.'.php';
 $viewData = array();
 
-if (file_exists($modelFile))
-{
-    require_once $modelFile;
-}
-
 $viewException = NULL;
 
 if (file_exists($controllerFile))
@@ -93,6 +88,11 @@ if (file_exists($controllerFile))
             $viewException = $ex;
         }
     }
+}
+else if (file_exists($modelFile))
+{
+    // the controller didn't include this, so we should
+    require_once $modelFile;
 }
 
 require_once('../framework/header.php');
@@ -179,6 +179,9 @@ function includeController($controllerName, $controllerFile, $app)
     /* @var $controller Controller */
     $controller = new $controllerName($app);
     
+    // controller's model
+    global $modelFile;
+    includeElement(array($modelFile), 'model');
     // get external models
     includeElement($controller->getModels(), 'model');
     
