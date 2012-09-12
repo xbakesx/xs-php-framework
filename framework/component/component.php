@@ -9,13 +9,23 @@ abstract class Component
 	    {
 	        Component::$components = new MyComponents();
 	    }
-	    if (is_null($args))
+	    if (method_exists(Component::$components, $componentName))
 	    {
-	        $componentData = Component::$components->$componentName();
+    	    if (is_null($args))
+    	    {
+    	        $componentData = Component::$components->$componentName();
+    	    }
+    	    else
+    	    {
+    	        $componentData = Component::$components->$componentName($args);
+    	    }
 	    }
 	    else
 	    {
-	        $componentData = Component::$components->$componentName($args);
+	        if (!is_null($args))
+	        {
+	            $componentData = $args;
+	        }
 	    }
 	    include '../component/'.$componentName.'.php';
 	}
