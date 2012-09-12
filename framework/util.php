@@ -41,3 +41,12 @@ function divide($str, $sep, $returnFirst = false)
 		return $ret;
 	}
 }
+
+/**
+ * @param string $str string to capitalize
+ * @return returns a capitalized version of the string passed in (uppercase the first letter, leaves the rest alone)
+ */
+function strtocap($str)
+{
+    return strtoupper(substr($str, 0, 1)).substr($str, 1);
+}

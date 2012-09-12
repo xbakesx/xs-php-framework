@@ -38,7 +38,7 @@ if ($prefix === null || strlen($prefix) == 0)
 }
 $prefix = divide($prefix, '.', true);
 $lowerPrefix = $prefix;
-$prefix = strtoupper(substr($prefix, 0, 1)).substr($prefix, 1);
+$prefix = strtocap($prefix);
 
 $controllerName = $prefix.$controllerSuffix;
 $controllerMethod = array_shift($path);
@@ -50,7 +50,6 @@ $controllerMethod = divide($controllerMethod, '.', true);
 $controllerArgs = $path;
 
 $controllerFile = '../controller/'.$controllerName.'.php';
-$modelFile = '../model/'.$prefix.$modelSuffix.'.php';
 $viewFile = '../view/'.$lowerPrefix.'/'.$controllerMethod.'.php';
 $viewData = array();
 
@@ -89,10 +88,14 @@ if (file_exists($controllerFile))
         }
     }
 }
-else if (file_exists($modelFile))
+else
 {
-    // the controller didn't include this, so we should
-    require_once $modelFile;
+    $modelFile = '../model/'.$prefix.$modelSuffix.'.php';
+    if (file_exists($modelFile))
+    {
+        // the controller didn't include this, so we should
+        require_once $modelFile;
+    }
 }
 
 require_once('../framework/header.php');
@@ -180,7 +183,9 @@ function includeController($controllerName, $controllerFile, $app)
     $controller = new $controllerName($app);
     
     // controller's model
-    global $modelFile;
+    global $modelSuffix;
+    global $controllerSuffix;
+    $modelFile = divide($controllerName, $controllerSuffix, true).$modelSuffix;
     includeElement(array($modelFile), 'model');
     // get external models
     includeElement($controller->getModels(), 'model');
