@@ -220,20 +220,23 @@ abstract class DatabaseModel extends Model implements PersistentStore
 	    $joinAssocs = $this->getJoinTableAssociations();
 	    foreach ($joinAssocs as $key => $assoc)
 	    {
-	        $foreignModel = $assoc['foreignModel'];
-	        $foreignModelName = $foreignModel.'Model';
-	        $newModel = new $foreignModelName($this->_joinArray);
-	        $subcount = $newModel->populate($array, $foreignModel.'_');
-	         
-	        if ($subcount > 0)
+	        if (array_search($key, $this->_joinArray) !== FALSE)
 	        {
-	            $key = $this->getJoinDataKey($foreignModelName);
-	            if (!isset($this->_joinData[$key]))
-	            {
-	                $this->_joinData[$key] = array();
-	            }
-	            $this->_joinData[$key][] = $newModel;
-	            $count += $subcount;
+    	        $foreignModel = $assoc['foreignModel'];
+    	        $foreignModelName = $foreignModel.'Model';
+    	        $newModel = new $foreignModelName($this->_joinArray);
+    	        $subcount = $newModel->populate($array, $foreignModel.'_');
+    	         
+    	        if ($subcount > 0)
+    	        {
+    	            $key = $this->getJoinDataKey($foreignModelName);
+    	            if (!isset($this->_joinData[$key]))
+    	            {
+    	                $this->_joinData[$key] = array();
+    	            }
+    	            $this->_joinData[$key][] = $newModel;
+    	            $count += $subcount;
+    	        }
 	        }
 	    }
 	    return $count;
