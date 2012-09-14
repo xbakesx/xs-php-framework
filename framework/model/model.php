@@ -167,6 +167,40 @@ abstract class DatabaseModel extends Model implements PersistentStore
 	    }
 	}
 	
+	/**
+     * @return array the return of this defines how your model is connected to other models
+     * 
+     * MANY TO MANY EXAMPLE:
+     * table 1: student (id, name)
+     * table 2: class (id, name)
+     * pivot: student_class_assoc (id, class_id, student_id)
+     * 
+     * Your Array in the StudentModel:
+     * return array(
+           YOUR_KEY_TO_IDENTIFY_THIS_ASSOCIATION => array(
+                'relationship' => MySQLModel::MANY_TO_MANY, // this is a many-to-many relationship
+                'localKey' => 'student_id',                 // refers to student.id
+                'foreignKey' => 'class_id',                 // refers to class.id
+                'joinTable' => 'student_class_assoc',       // this is your pivot table
+                'assocLocalKey' => 'student_id',            // refers to student_class_assoc.student_id
+                'assocForeignKey' => 'class_id',            // refers to student_class_assoc.class_id
+                'foreignModel' => 'class'                   // matches prefix of the model for the second table (table 2, class) 'class' -> 'ClassModel'
+     *     );
+     * );
+     * 
+     * ONE TO MANY EXAMPLE:
+     * table 1: class (id, name, teacher_id)
+     * table 2: teacher(id, first_name, last_name)
+     * 
+     * Your Array in the ClassModel:
+     *  return array(
+            YOUR_KEY_TO_IDENTIFY_THIS_ASSOCIATION => array(
+                'localKey' => 'teacher_id',                 // refers to class.teacher_id
+                'foreignKey' => 'id',                       // refers to teacher.id
+                'foreignModel' => 'teacher'                 // matches prefix of the model for the second table (table 2, teacher) 'teacher' -> 'TeacherModel'
+            )
+        );
+	 */
 	public function getJoinTableAssociations()
 	{
 		return array();
