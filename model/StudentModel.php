@@ -43,6 +43,7 @@ class StudentModel extends MySQLModel
         return array(
             StudentModel::CLASS_STUDENT_MANY_TO_MANY => array(
                 'relationship' => MySQLModel::MANY_TO_MANY,
+                'policy' => MySQLModel::LEFT_JOIN,
                 'localKey' => 'id',                    // matches local variable
                 'foreignKey' => 'id',                  // matches table column for foreign table
                 'joinTable' => 'student_class_assoc',  // table to join on for the many-to-many relationships

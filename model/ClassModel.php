@@ -31,6 +31,7 @@ class ClassModel extends MySQLModel
     {
         return array(
             ClassModel::TEACHER_ASSOC => array(
+                'policy' => MySQLModel::LEFT_JOIN,
                 'localKey' => 'teacher_id', // matches local variable
                 'foreignKey' => 'id',       // matches table column for foreign table
                 'foreignModel' => 'teacher' // matches prefix of the model ('user' for UserModel)

@@ -183,6 +183,7 @@ abstract class DatabaseModel extends Model implements PersistentStore
      * return array(
      *     YOUR_KEY_TO_IDENTIFY_THIS_ASSOCIATION => array(
      *          'relationship' => MySQLModel::MANY_TO_MANY, // this is a many-to-many relationship
+     *          'policy' => MySQLModel::LEFT_JOIN          // does left joins (vs inner join)
      *          'localKey' => 'student_id',                 // refers to student.id
      *          'foreignKey' => 'class_id',                 // refers to class.id
      *          'joinTable' => 'student_class_assoc',       // this is your pivot table
@@ -199,6 +200,7 @@ abstract class DatabaseModel extends Model implements PersistentStore
      * Your Array in the ClassModel:
      *  return array(
      *      YOUR_KEY_TO_IDENTIFY_THIS_ASSOCIATION => array(
+     *          'policy' => MySQLModel::INNER_JOIN          // does inner joins (vs left join)
      *          'localKey' => 'teacher_id',                 // refers to class.teacher_id
      *          'foreignKey' => 'id',                       // refers to teacher.id
      *          'foreignModel' => 'teacher'                 // matches prefix of the model for the second table (table 2, teacher) 'teacher' -> 'TeacherModel'
@@ -259,6 +261,9 @@ abstract class MySQLModel extends DatabaseModel
 {
     const MANY_TO_MANY = 1;
     const ONE_TO_MANY = 2;
+    
+    const LEFT_JOIN = 1;
+    const INNER_JOIN = 2;
     
     private $_connection;
 	private $_queryHandle;
@@ -433,20 +438,40 @@ abstract class MySQLModel extends DatabaseModel
 	            if (isset($assoc['relationship']) && $assoc['relationship'] === MySQLModel::MANY_TO_MANY)
 	            {
 	                $joinTable = $this->escapeTable($assoc['joinTable']);
-	                $tables .= ', '.$this->escapeTable($assoc['joinTable']).', '.$foreignTable;
+    	                
+	                $cond1 = $table.'.'.$this->escapeColumn($assoc['localKey']).' = '.$joinTable.'.'.$this->escapeColumn($assoc['assocLocalKey']);
+	                $cond2 = $joinTable.'.'.$this->escapeColumn($assoc['assocForeignKey']).' = '.$foreignTable.'.'.$this->escapeColumn($assoc['foreignKey']);
 	                
-	                $conditions .= $conditionSep.$table.'.'.$this->escapeColumn($assoc['localKey']).' = '.$joinTable.'.'.$this->escapeColumn($assoc['assocLocalKey']);
-	                $conditionSep = ' and ';
-    	            
-    	            $conditions .= $conditionSep.$joinTable.'.'.$this->escapeColumn($assoc['assocForeignKey']).' = '.$foreignTable.'.'.$this->escapeColumn($assoc['foreignKey']);
-    				$conditionSep = ' and ';
+	                if (isset($assoc['policy']) && $assoc['policy'] == MySQLModel::LEFT_JOIN)
+	                {
+    	                $tables .= ' left join '.$this->escapeTable($assoc['joinTable']).' on '.$cond1.' left join '.$foreignTable.' on '.$cond2;
+	                }
+	                else
+	                {
+    	                $tables .= ', '.$this->escapeTable($assoc['joinTable']).', '.$foreignTable;
+    	                
+    	                $conditions .= $conditionSep.$cond1;
+    	                $conditionSep = ' and ';
+        	            
+        	            $conditions .= $conditionSep.$cond2;
+        	            $conditionSep = ' and ';
+	                }
 	            }
 	            else
 	            {
-    	            $tables .= ', '.$foreignTable;
-    	            
-    	            $conditions .= $conditionSep.$table.'.'.$this->escapeColumn($assoc['localKey']).' = '.$foreignTable.'.'.$this->escapeColumn($assoc['foreignKey']);
-    				$conditionSep = ' and ';
+	                $cond = $table.'.'.$this->escapeColumn($assoc['localKey']).' = '.$foreignTable.'.'.$this->escapeColumn($assoc['foreignKey']);
+	                
+	                if (isset($assoc['policy']) && $assoc['policy'] == MySQLModel::LEFT_JOIN)
+	                {
+	                    $tables .= ' left join '.$foreignTable.' on '.$cond;
+	                }
+	                else
+	                {
+        	            $tables .= ', '.$foreignTable;
+        	            
+        	            $conditions .= $conditionSep.$cond;
+        				$conditionSep = ' and ';
+	                }
 	            }
 	        }
 	    }
