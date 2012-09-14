@@ -4,13 +4,9 @@ class StudentModel extends MySQLModel
 {
     const CLASS_STUDENT_MANY_TO_MANY = 0;
     
+    protected $id;
     protected $name;
     protected $birthday;
-    
-    /**
-     * @var ClassModel $class
-     */
-    protected $class;
     
     public function getName()
     {
@@ -34,7 +30,7 @@ class StudentModel extends MySQLModel
     
     public function getClasses()
     {
-        return $this->class;
+        return $this->getJoinData('ClassModel');
     }
     
     public function getTable()
@@ -60,5 +56,10 @@ class StudentModel extends MySQLModel
     public function getDatabaseConnectionKey()
     {
         return App::USER_DB;
+    }
+    
+    public function getPrimaryKey()
+    {
+        return 'id';
     }
 }

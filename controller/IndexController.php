@@ -1,9 +1,5 @@
 <?php
 
-require_once '../model/ClassModel.php';
-require_once '../model/StudentModel.php';
-require_once '../model/TeacherModel.php';
-
 class IndexController extends Controller
 {
     public function isAuthorized()
@@ -19,9 +15,30 @@ class IndexController extends Controller
         }
     }
     
+    public function getModels()
+    {
+        return array('ClassModel.php', 'StudentModel.php', 'TeacherModel.php');
+    }
+    
     public function index()
     {
         
+    }
+    
+    public function updateStudents()
+    {
+        $search = new StudentModel();
+        $search->setBirthday('1920-01-01');
+        $students = $search->search(array(new MySQLOperator('birthday', '>')));
+        
+        foreach ($students as $student)
+        {
+            /* @var StudentModel $student */
+            $student->setName(substr($student->getName(), 0, -2));
+            $student->update();
+        }
+        
+        $this->redirect('http://xs.local//students/');
     }
     
     public function classes($args)
@@ -42,7 +59,7 @@ class IndexController extends Controller
 
 CREATE TABLE `teacher` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(45) DEFAULT NULL,
+  `teacher_name` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`id`)
 );
 
@@ -88,12 +105,7 @@ CREATE_TABLE;
         try
         {
             $students = new StudentModel(array(StudentModel::CLASS_STUDENT_MANY_TO_MANY));
-            $students->query();
-            
-            while ($student = $students->fetch())
-            {
-                $ret[] = $student;
-            }
+            $ret = $students->search();
         }
         catch (MySQLException $ex)
         {

@@ -36,4 +36,9 @@ class UserModel extends MySQLModel
     {
         return App::USER_DB;
     }
+    
+    public function getPrimaryKey()
+    {
+        return 'id';
+    }
 }

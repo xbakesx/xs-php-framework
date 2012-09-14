@@ -6,12 +6,6 @@ class ClassModel extends MySQLModel
     
     protected $name;
     
-    /**
-     * @var TeacherModel $teacher
-     */
-    protected $teacher;
-    protected $teacher_id;
-    
     public function getName()
     {
         return $this->name;
@@ -22,19 +16,10 @@ class ClassModel extends MySQLModel
         $this->name = $name;
     }
     
-    public function setTeacherForeignKey($id)
-    {
-        $this->teacherForeignKey = $id;
-    }
-    
-    public function setTeacher($teacher)
-    { 
-        $this->teacher = $teacher;
-    }
-    
     public function getTeacher()
     {
-        return $this->teacher;
+        $teachers = $this->getJoinData('TeacherModel');
+        return array_shift($teachers);
     }
     
     public function getTable()
@@ -56,5 +41,10 @@ class ClassModel extends MySQLModel
     public function getDatabaseConnectionKey()
     {
         return App::USER_DB;
+    }
+    
+    public function getPrimaryKey()
+    {
+        return 'id';
     }
 }

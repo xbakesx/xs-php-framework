@@ -14,6 +14,8 @@ abstract class Model
 
 	public function populate(&$array, $prefix = '')
 	{
+	    $count = 0;
+	    
 	    $prefixLen = strlen($prefix);
 		foreach ($array as $key => $value)
 		{
@@ -25,10 +27,13 @@ abstract class Model
 		        $realKey = substr($key, $prefixLen);
     	        if (property_exists($this, $realKey))
     	        {
+    	            ++$count;
                     $this->$realKey = $value;
     	        }
 		    }
 		}
+
+		return $count;
 	}
 
 	public function toArray()
@@ -86,12 +91,14 @@ interface PersistentStore
 	public function createOrUpdate();
 	/**
 	 * This will take teh data in the current model, and update the persistent store.
+	 * @param bool $singleRow if true, thows an exception when trying to affect more than one row
 	 * @return the model that is persisted.
 	 * @throws UpdateException if the objects fails to update the persistence
 	 */
 	public function update();
 	/**
 	 * Takes the data in the current model and deletes matching items from the persistence
+	 * @param bool $singleRow if true, thows an exception when trying to affect more than one row
 	 * @throws DeleteException if the persistence fails to be deleted
 	 */
 	public function delete();
@@ -110,13 +117,14 @@ abstract class DatabaseModel extends Model implements PersistentStore
 	public static $connectionEstablshed = array();
 	private $_connectionKey;
 	protected $_joinArray;
-	protected $_operators;
+	protected $_primaryKey;
+	protected $_joinData;
 
 	/**
 	 * @param array $join an array of keys in getJoinTableAssociations()
 	 * @param array $operators an array of table columns to operators
 	 */
-	public function __construct($join = array(), $operators = array())
+	public function __construct($join = array())
 	{
 	    parent::__construct();
 	    
@@ -131,10 +139,33 @@ abstract class DatabaseModel extends Model implements PersistentStore
 		}
 		
 		$this->_joinArray = $join;
-		$this->_operators = $operators;
+		$this->_joinData = array();
 	}
 
+	/**
+	 * @return mixed a key to an element in the return of App->getDatabaseConnections()  
+	 */
 	abstract public function getDatabaseConnectionKey();
+	/**
+	 * @return string the name of the column that will be used as the primary key.  The primary key
+	 * will be used to uniquely identify an item.
+	 */
+	abstract public function getPrimaryKey();
+	/**
+	 * @param string the name of a model to get joined entries on
+	 * @return array an array populated with models which is the result of joins on other models (tables)
+	 */
+	public function getJoinData($model = FALSE)
+	{
+	    if ($model !== FALSE)
+	    {
+	        return $this->_joinData[$this->getJoinDataKey($model)];
+	    }
+	    else
+	    {
+	        return $this->_joinData;
+	    }
+	}
 	
 	public function getJoinTableAssociations()
 	{
@@ -143,21 +174,33 @@ abstract class DatabaseModel extends Model implements PersistentStore
 	
 	public function populate(&$array, $prefix = '')
 	{
-	    parent::populate($array, $prefix);
+	    $count = parent::populate($array, $prefix);
 	    
 	    $joinAssocs = $this->getJoinTableAssociations();
 	    foreach ($joinAssocs as $key => $assoc)
 	    {
 	        $foreignModel = $assoc['foreignModel'];
-	        if (property_exists($this, $foreignModel))
+	        $foreignModelName = $foreignModel.'Model';
+	        $newModel = new $foreignModelName($this->_joinArray);
+	        $subcount = $newModel->populate($array, $foreignModel.'_');
+	         
+	        if ($subcount > 0)
 	        {
-	            $foreignModelName = $foreignModel.'Model';
-	            $newModel = new $foreignModelName($this->_joinArray);
-	            $newModel->populate($array, $foreignModel.'_');
-	            
-	            $this->$foreignModel = $newModel;
+	            $key = $this->getJoinDataKey($foreignModelName);
+	            if (!isset($this->_joinData[$key]))
+	            {
+	                $this->_joinData[$key] = array();
+	            }
+	            $this->_joinData[$key][] = $newModel;
+	            $count += $subcount;
 	        }
 	    }
+	    return $count;
+	}
+	
+	public function getJoinDataKey($model)
+	{
+	    return strtolower($model);
 	}
 	
 	protected function getMemberVariables()
@@ -166,7 +209,8 @@ abstract class DatabaseModel extends Model implements PersistentStore
 
 		// remove member vars from this (the parent) class
 		unset($vars['_joinArray']);
-		unset($vars['_operators']);
+		unset($vars['_primaryKey']);
+		unset($vars['_joinData']);
 
 		return $vars;
 	}
@@ -229,7 +273,7 @@ abstract class MySQLModel extends DatabaseModel
 		$columns = '`'.implode('`,`', array_keys($props)).'`';
 		$values = "'".implode("','", $this->escapedArrayValues($props))."'";
 
-		$this->sqlQuery("insert into `{$this->getTable()}` ($columns) values ($values)");
+		$this->sqlQuery("insert into {$this->escapeTable($this->getTable())} ($columns) values ($values)");
 	}
 
 	/**
@@ -245,7 +289,26 @@ abstract class MySQLModel extends DatabaseModel
 	 */
 	public function update()
 	{
-		// takes all the member variables and does an database update
+	    $props = $this->getSetMemberVariables();
+	    $primaryKeyColumn = $this->getPrimaryKey();
+
+	    if (empty($props[$primaryKeyColumn]))
+	    {
+	        throw new MySQLException('Model->update()', 'Make sure your model has an instance variable of your Primary Key.');
+	    }
+
+	    $primaryKeyValue = mysql_real_escape_string($props[$primaryKeyColumn]);
+	    unset($props[$primaryKeyColumn]);
+
+	    $set = '';
+	    $sep = ' SET ';
+	    foreach ($props as $key => $value)
+	    {
+	        $set .= $sep.$this->escapeColumn($key).' = '.$this->escapeValue($value);
+	        $sep = ', ';
+	    }
+
+	    return $this->sqlQuery("update {$this->escapeTable($this->getTable())} $set WHERE {$this->escapeColumn($primaryKeyColumn)} = {$this->escapeValue($primaryKeyValue)}");
 	}
 
 	/**
@@ -310,7 +373,7 @@ abstract class MySQLModel extends DatabaseModel
 	            $foreignModel = new $foreignModel();
 	            $foreignTable = $this->escapeTable($foreignModel->getTable());
 	            
-	            $columns .= $columnSep.$foreignTable.'.*';
+	            $columns .= $this->getAllColumnSql($foreignModel, $columnSep, $assoc['foreignModel']);
 	            $columnSep = ',';
 	            
 	            if (isset($assoc['relationship']) && $assoc['relationship'] === MySQLModel::MANY_TO_MANY)
@@ -334,12 +397,12 @@ abstract class MySQLModel extends DatabaseModel
 	        }
 	    }
 	    
-	    $columns .= $columnSep.$table.'.*';
+	    $columns .= $this->getAllColumnSql($this, $columnSep);
 	    
 	    if (!empty($props))
 	    {
 	        $operators = $this->getOperators($listOfSpecialClause);
-	    
+	        
 			foreach ($props as $col => $value)
 			{
 			    $op = '=';
@@ -347,7 +410,7 @@ abstract class MySQLModel extends DatabaseModel
 			    {
 			        $op = $operators[$col];
 			    }
-				$conditions .= $conditionSep.$table.'.'.$this->escapeColumn($col).' '.$op.' \''.mysql_real_escape_string($value).'\'';
+ 				$conditions .= $conditionSep.$table.'.'.$this->escapeColumn($col).' '.$op.' '.$this->escapeValue($value);
 				$conditionSep = ' and ';
 			}
 	    }
@@ -365,6 +428,21 @@ abstract class MySQLModel extends DatabaseModel
 		$this->sqlQuery("select $columns from $tables $where $conditions $special");
 		
 		return mysql_num_rows($this->_queryHandle);
+	}
+	
+	private function getAllColumnSql(&$model, $columnSep, $prefixColumnNames = false)
+	{
+	    $table = $this->escapeTable($model->getTable());
+	    $cols = $model->getMemberVariables();
+	    
+	    $ret = '';
+	    foreach ($cols as $col => $value)
+	    {
+	        $ret .= $columnSep.$table.'.'.$this->escapeColumn($col).' as '.$this->escapeColumn($prefixColumnNames ? $prefixColumnNames.'_'.$col : $col);
+	        $columnSep = ', ';
+	    }
+	    
+	    return $ret;
 	}
 
 	/**
@@ -404,6 +482,8 @@ abstract class MySQLModel extends DatabaseModel
 
 		// remove member vars from this (the parent) class
 		unset($vars['_connection']);
+		unset($vars['_queryHandle']);
+		unset($vars['_query']);
 
 		return $vars;
 	}
@@ -458,6 +538,11 @@ abstract class MySQLModel extends DatabaseModel
 	private function escapeColumn($column)
 	{
 	    return '`'.$column.'`';
+	}
+	
+	private function escapeValue($value)
+	{
+	    return '\''.mysql_real_escape_string($value).'\'';
 	}
 	
 	private function getOperators($specialClauses)

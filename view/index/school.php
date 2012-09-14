@@ -1,9 +1,7 @@
 <h1>Welcome to XS - <em>The</em> PHP Framework</h1>
 
 <pre>
-    It appears that the join does not populate joined model correctly.
-    
-    Also, make sure to try doing a many-to-many join, with another join to get the class's teacher information.
+    Make sure to try doing a many-to-many join, with another join to get the class's teacher information.
 </pre>
 
 <?php
@@ -18,12 +16,10 @@ if (is_array($viewData))
         if (is_array($classes) > 0)
         {
             $count = count($classes);
-            
-            break;
             echo "<tr><td rowspan=\"$count\">{$student->getName()}</td>";
             
             $firstClass = array_shift($classes);
-            echo "<td>{$class->getName()}</td><tr>";
+            echo "<td>{$firstClass->getName()}</td><tr>";
             
             foreach ($classes as $class)
             {
