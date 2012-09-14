@@ -314,9 +314,23 @@ abstract class MySQLModel extends DatabaseModel
 	/**
 	 * @see PersistentStore::delete()
 	 */
-	public function delete()
+	public function delete($listOfSpecialClause = array())
 	{
-		// takes the member variables and deletes matching rows in database
+	    $props = $this->getSetMemberVariables();
+	    $where = '';
+	    if (!empty($props))
+	    {
+	        $table = $this->escapeTable($this->getTable());
+	        
+	        // ensure $listOfSpecialClause is an array
+	        if (!is_array($listOfSpecialClause))
+	        {
+	            $listOfSpecialClause = array($listOfSpecialClause);
+	        }
+	        
+	        $where = ' WHERE '.$this->getWhereClause($props, $table, $listOfSpecialClause);
+	    }
+		$this->sqlQuery("delete from {$this->escapeTable($this->getTable())}$where");
 	}
 
 	/**
@@ -347,7 +361,7 @@ abstract class MySQLModel extends DatabaseModel
 		$props = $this->getSetMemberVariables();
 	    $table = $this->escapeTable($this->getTable());
 	    
-	    $where = 'where';
+	    $where = 'where ';
 	    $tables = $table;
 		$columns = '';
 		$columnSep = '';
@@ -401,18 +415,8 @@ abstract class MySQLModel extends DatabaseModel
 	    
 	    if (!empty($props))
 	    {
-	        $operators = $this->getOperators($listOfSpecialClause);
-	        
-			foreach ($props as $col => $value)
-			{
-			    $op = '=';
-			    if (isset($operators[$col]))
-			    {
-			        $op = $operators[$col];
-			    }
- 				$conditions .= $conditionSep.$table.'.'.$this->escapeColumn($col).' '.$op.' '.$this->escapeValue($value);
-				$conditionSep = ' and ';
-			}
+	        $conditions .= $this->getWhereClause($props, $table, $listOfSpecialClause, $conditionSep);
+	        $conditionSep = ' and ';
 	    }
 	    
 	    if($listOfSpecialClause)
@@ -424,8 +428,12 @@ abstract class MySQLModel extends DatabaseModel
         {
             $where = '';
         }
+        else 
+        {
+            $where .= $conditions;
+        }
         
-		$this->sqlQuery("select $columns from $tables $where $conditions $special");
+		$this->sqlQuery("select $columns from $tables $where $special");
 		
 		return mysql_num_rows($this->_queryHandle);
 	}
@@ -444,7 +452,26 @@ abstract class MySQLModel extends DatabaseModel
 	    
 	    return $ret;
 	}
-
+	
+	private function getWhereClause($props, $table, $listOfSpecialClause = array(), $conditionSep = '')
+	{
+	    $ret = '';
+        $operators = $this->getOperators($listOfSpecialClause);
+        
+		foreach ($props as $col => $value)
+		{
+		    $op = '=';
+		    if (isset($operators[$col]))
+		    {
+		        $op = $operators[$col];
+		    }
+			$ret .= $conditionSep.$table.'.'.$this->escapeColumn($col).' '.$op.' '.$this->escapeValue($value);
+			$conditionSep = ' and ';
+		}
+		
+		return $ret;
+	}
+	
 	/**
 	 * @return The next result from a previous query or false if there are none left
 	 * @throws SearchException if there was no previous query, or an error occurred

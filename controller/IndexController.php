@@ -134,4 +134,38 @@ CREATE_TABLE;
         
         return $ret;
     }
+    
+    public function test($args)
+    {
+        $studentName = urldecode(array_shift($args));
+        if (!$studentName)
+        {
+            $studentName = 'Another Batman';
+        }
+        
+        if ($studentName == 'delete')
+        {
+            $studentName = urldecode(array_shift($args));
+            if (!$studentName)
+            {
+                return false;
+            }
+            else 
+            {
+                $student = new StudentModel();
+                $student->setName($studentName);
+                $student->delete();
+            }
+        }
+        else
+        {
+            $student = new StudentModel();
+            $student->setName($studentName);
+            $student->create();
+        }
+        
+        $student = new StudentModel();
+        return $student->search();
+    }
+    
 }
