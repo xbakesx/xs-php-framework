@@ -138,6 +138,10 @@ abstract class DatabaseModel extends Model implements PersistentStore
 			DatabaseModel::$connectionEstablshed[$this->_connectionKey] = true;
 		}
 		
+		if (!is_array($join))
+		{
+		    $join = array($join);
+		}
 		$this->_joinArray = $join;
 		$this->_joinData = array();
 	}
@@ -169,7 +173,7 @@ abstract class DatabaseModel extends Model implements PersistentStore
 	
 	/**
      * @return array the return of this defines how your model is connected to other models
-     * 
+     * <p><blockquote><pre>
      * MANY TO MANY EXAMPLE:
      * table 1: student (id, name)
      * table 2: class (id, name)
@@ -177,15 +181,15 @@ abstract class DatabaseModel extends Model implements PersistentStore
      * 
      * Your Array in the StudentModel:
      * return array(
-           YOUR_KEY_TO_IDENTIFY_THIS_ASSOCIATION => array(
-                'relationship' => MySQLModel::MANY_TO_MANY, // this is a many-to-many relationship
-                'localKey' => 'student_id',                 // refers to student.id
-                'foreignKey' => 'class_id',                 // refers to class.id
-                'joinTable' => 'student_class_assoc',       // this is your pivot table
-                'assocLocalKey' => 'student_id',            // refers to student_class_assoc.student_id
-                'assocForeignKey' => 'class_id',            // refers to student_class_assoc.class_id
-                'foreignModel' => 'class'                   // matches prefix of the model for the second table (table 2, class) 'class' -> 'ClassModel'
-     *     );
+     *     YOUR_KEY_TO_IDENTIFY_THIS_ASSOCIATION => array(
+     *          'relationship' => MySQLModel::MANY_TO_MANY, // this is a many-to-many relationship
+     *          'localKey' => 'student_id',                 // refers to student.id
+     *          'foreignKey' => 'class_id',                 // refers to class.id
+     *          'joinTable' => 'student_class_assoc',       // this is your pivot table
+     *          'assocLocalKey' => 'student_id',            // refers to student_class_assoc.student_id
+     *          'assocForeignKey' => 'class_id',            // refers to student_class_assoc.class_id
+     *          'foreignModel' => 'class'                   // matches prefix of the model for the second table (table 2, class) 'class' -> 'ClassModel'
+     *     )
      * );
      * 
      * ONE TO MANY EXAMPLE:
@@ -194,12 +198,13 @@ abstract class DatabaseModel extends Model implements PersistentStore
      * 
      * Your Array in the ClassModel:
      *  return array(
-            YOUR_KEY_TO_IDENTIFY_THIS_ASSOCIATION => array(
-                'localKey' => 'teacher_id',                 // refers to class.teacher_id
-                'foreignKey' => 'id',                       // refers to teacher.id
-                'foreignModel' => 'teacher'                 // matches prefix of the model for the second table (table 2, teacher) 'teacher' -> 'TeacherModel'
-            )
-        );
+     *      YOUR_KEY_TO_IDENTIFY_THIS_ASSOCIATION => array(
+     *          'localKey' => 'teacher_id',                 // refers to class.teacher_id
+     *          'foreignKey' => 'id',                       // refers to teacher.id
+     *          'foreignModel' => 'teacher'                 // matches prefix of the model for the second table (table 2, teacher) 'teacher' -> 'TeacherModel'
+     *      )
+     *  );
+     * </pre></blockquote></p>
 	 */
 	public function getJoinTableAssociations()
 	{
@@ -418,6 +423,7 @@ abstract class MySQLModel extends DatabaseModel
 	            
 	            // TODO: this is too bad, to have to create the new model, then toss it just to get the table, but I don't want to re-ask for teh table name because they already specified that once
 	            $foreignModel = $assoc['foreignModel'].'Model';
+	            includeElement(array($foreignModel.'.php'), 'model');
 	            $foreignModel = new $foreignModel();
 	            $foreignTable = $this->escapeTable($foreignModel->getTable());
 	            

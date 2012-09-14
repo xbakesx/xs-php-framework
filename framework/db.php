@@ -86,7 +86,7 @@ class MySQLException extends Exception
 {
     private $_query;
     
-    public function __construct($query, $error)
+    public function __construct($query, $error = '')
     {
         parent::__construct($error);
         $this->_query = $query;
