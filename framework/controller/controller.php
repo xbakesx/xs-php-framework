@@ -20,14 +20,16 @@ interface ControllerInterface
 
 abstract class Controller implements ControllerInterface
 {
-    public $app;
+    public $_app;
+    private $_js;
     
     /**
      * @param App $app an instance of the application config
      */
     function __construct($app) 
     {
-        $this->app = $app;
+        $this->_app = $app;
+        $this->_js = array();
     }
     
     /**
@@ -56,7 +58,7 @@ abstract class Controller implements ControllerInterface
      */
     public function includeController($controller)
     {
-        return includeController($controller, '../controller/'.$controller.'.php', $this->app);
+        return includeController($controller, '../controller/'.$controller.'.php', $this->_app);
     }
     
     /**
@@ -73,9 +75,22 @@ abstract class Controller implements ControllerInterface
         return "../view/$view.php";
     }
     
+    public function getAllJs()
+    {
+        $controllerJs = $this->getJs();
+        $js = ($controllerJs === FALSE) ? $this->_app->getJs() : $controllerJs;
+        
+        return array_merge($js, $this->_js);
+    }
+    
+    protected function addJs($jsFile)
+    {
+        $this->_js[] = $jsFile;
+    }
+    
     protected function getDatabaseConnection($key)
     {
-        $dbs = $this->app->getDatabaseConnections();
+        $dbs = $this->_app->getDatabaseConnections();
         return $dbs[$key];
     }
     
