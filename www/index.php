@@ -55,6 +55,8 @@ $viewData = array();
 
 $viewException = NULL;
 
+set_include_path('../conf/include/');
+
 if (file_exists($controllerFile))
 {
     $controller = includeController($controllerName, $controllerFile, $app);
