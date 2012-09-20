@@ -15,20 +15,16 @@ abstract class Model
 	public function populate(&$array, $prefix = '')
 	{
 	    $count = 0;
-	    $prefixLen = strlen($prefix);
 		foreach ($array as $key => $value)
 		{
-		    // hack off the prefix from the key, if the key starts with the prefix
-		    $keyPrefix = substr($key, 0, $prefixLen);
-		    
-		    if ($keyPrefix == $prefix)
+		    if (property_exists($this, $key))
 		    {
-		        $realKey = substr($key, $prefixLen);
-    	        if (property_exists($this, $realKey))
-    	        {
-    	            ++$count;
-    	            $this->$realKey = $value;
-    	        }
+		        ++$count;
+		        if (is_array($value))
+		        {
+		            $value = array_shift($value);
+		        }
+		        $this->$key = $value;
 		    }
 		}
 
@@ -740,10 +736,10 @@ abstract class MySQLModel extends DatabaseModel
 	        if (is_array($a))
 	        {
 	            $ret[$key][] = $b;
-	            $ret[$key] = array_unique($ret[$key]);
 	        }
-	        else if ($a != $value)
+	        else
 	        {
+	            // TODO: merging base model's info into an array here
 	            $ret[$key] = array($a, $b);
 	        }
 	    }
