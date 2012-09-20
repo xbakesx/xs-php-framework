@@ -494,10 +494,14 @@ abstract class MySQLModel extends DatabaseModel
 		{
 			$ret[] = $model;
 		}
-
+		
 		return $ret;
 	}
 	
+	/**
+	 * This returns an array of fetchObject() calls emptying your query results
+	 * @see PersistentStore::search()
+	 */
 	public function searchObjects($listOfSpecialClause = FALSE)
 	{
 		// takes the set member variables and returns an array of of matching rows
@@ -678,6 +682,10 @@ abstract class MySQLModel extends DatabaseModel
 		return $this->createNewModel($row);
 	}
 	
+	/**
+	 * @return object This returns the next model derived from (possibly) multiple rows from the last query.  Check getJoinData(lower case model name) for results. 
+	 * @throws SearchException if there was no previous query, or an error occurred
+	 */
 	public function fetchObject()
 	{
 	    if (is_null($this->_queryHandle))
@@ -787,7 +795,6 @@ abstract class MySQLModel extends DatabaseModel
 
 	private function sqlQuery($sql)
 	{
-	    debug($sql);
 		$h = mysql_query($sql);
 		
 		if ($h === false)
