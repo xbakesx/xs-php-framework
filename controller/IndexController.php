@@ -47,11 +47,13 @@ class IndexController extends Controller
         
         try
         {
-            $classes = new ClassModel(array(ClassModel::TEACHER_ASSOC));
-            $ret = $classes->search();
+            $classes = new ClassModel();
+            $classes->setJoins(array(ClassModel::TEACHER_ASSOC, StudentModel::CLASS_STUDENT_MANY_TO_MANY));
+            $ret = $classes->searchObjects();
         }
         catch (MySQLException $ex)
         {
+            debug($classes->getLastQuery());
             $msg = $ex->getMessage();
             $ret = <<<CREATE_TABLE
             <h3>SQL Error: $msg</h3>

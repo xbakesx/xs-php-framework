@@ -15,7 +15,6 @@ abstract class Model
 	public function populate(&$array, $prefix = '')
 	{
 	    $count = 0;
-	    
 	    $prefixLen = strlen($prefix);
 		foreach ($array as $key => $value)
 		{
@@ -28,12 +27,22 @@ abstract class Model
     	        if (property_exists($this, $realKey))
     	        {
     	            ++$count;
-                    $this->$realKey = $value;
+    	            $this->$realKey = $value;
     	        }
 		    }
 		}
 
 		return $count;
+	}
+	
+	protected function createNewModel($data)
+	{
+	    $modelName = get_class($this);
+	    $model = new $modelName();
+	    
+	    $model->populate($data);
+	    
+	    return $model;
 	}
 
 	public function toArray()
@@ -120,11 +129,7 @@ abstract class DatabaseModel extends Model implements PersistentStore
 	protected $_primaryKey;
 	protected $_joinData;
 
-	/**
-	 * @param array $join an array of keys in getJoinTableAssociations()
-	 * @param array $operators an array of table columns to operators
-	 */
-	public function __construct($join = array())
+	public function __construct()
 	{
 	    parent::__construct();
 	    
@@ -138,11 +143,7 @@ abstract class DatabaseModel extends Model implements PersistentStore
 			DatabaseModel::$connectionEstablshed[$this->_connectionKey] = true;
 		}
 		
-		if (!is_array($join))
-		{
-		    $join = array($join);
-		}
-		$this->_joinArray = $join;
+		$this->_joinArray = array();
 		$this->_joinData = array();
 	}
 
@@ -213,6 +214,27 @@ abstract class DatabaseModel extends Model implements PersistentStore
 		return array();
 	}
 	
+	/**
+	 * @param array $joinId a key in getJoinTableAssociations() to do joins against
+	 */
+	public function addJoin($joinId)
+	{
+	    $this->_joinArray[] = $joinId;
+	}
+	
+	/**
+	 * @param array $joinIds an array of keys in getJoinTableAssociations() to do joins against
+	 */
+	public function setJoins($joinIds)
+	{
+	    if (!is_array($joinIds))
+	    {
+	        $joinIds = array($joinIds);
+	    }
+	    
+	    $this->_joinArray = $joinIds;
+	}
+	
 	public function populate(&$array, $prefix = '')
 	{
 	    $count = parent::populate($array, $prefix);
@@ -224,22 +246,91 @@ abstract class DatabaseModel extends Model implements PersistentStore
 	        {
     	        $foreignModel = $assoc['foreignModel'];
     	        $foreignModelName = $foreignModel.'Model';
-    	        $newModel = new $foreignModelName($this->_joinArray);
-    	        $subcount = $newModel->populate($array, $foreignModel.'_');
-    	         
-    	        if ($subcount > 0)
+    	        $modelData = $this->extractData($array, $foreignModel.'_');
+    	        
+    	        $isMultipleModels = $modelData['isMultipleModels'];
+    	        unset($modelData['isMultipleModels']);
+    	        if ($isMultipleModels)
     	        {
-    	            $key = $this->getJoinDataKey($foreignModelName);
-    	            if (!isset($this->_joinData[$key]))
+    	            foreach ($modelData as $values)
     	            {
-    	                $this->_joinData[$key] = array();
+    	                $newModel = new $foreignModelName();
+    	                $subcount = $newModel->populate($values);
+            	        if ($subcount > 0)
+            	        {
+            	            $key = $this->getJoinDataKey($foreignModelName);
+            	            if (!isset($this->_joinData[$key]))
+            	            {
+            	                $this->_joinData[$key] = array();
+            	            }
+            	            $this->_joinData[$key][] = $newModel;
+            	            $count += $subcount;
+            	        }
     	            }
-    	            $this->_joinData[$key][] = $newModel;
-    	            $count += $subcount;
     	        }
+    	        else
+    	        {
+    	            $newModel = new $foreignModelName();
+    	            $subcount = $newModel->populate($modelData);
+        	        if ($subcount > 0)
+        	        {
+        	            $key = $this->getJoinDataKey($foreignModelName);
+        	            if (!isset($this->_joinData[$key]))
+        	            {
+        	                $this->_joinData[$key] = array();
+        	            }
+        	            $this->_joinData[$key][] = $newModel;
+        	            $count += $subcount;
+        	        }
+    	        }
+    	         
 	        }
 	    }
 	    return $count;
+	}
+	
+	private function extractData($array, $prefix)
+	{
+	    $ret = array();
+	    $isMultipleModels = false;
+	    $prefixLen = strlen($prefix);
+	    foreach ($array as $key => $value)
+	    {
+	        if (substr($key, 0, $prefixLen) == $prefix)
+	        {
+	            $newKey = substr($key, $prefixLen);
+	            if (is_array($value))
+	            {
+	                $isMultipleModels = true;
+	                $tmp = array();
+	                foreach ($value as $oneValue)
+	                {
+	                    $tmp[] = $oneValue;
+	                }
+	                $ret[$newKey] = $tmp;
+	            }
+	            else
+	            {
+	                $ret[$newKey] = $value;
+	            }
+	        }
+	    }
+	    // now "invert" array for easier navigation later
+	    if ($isMultipleModels)
+	    {
+	        $newRet = array();
+	        foreach ($ret as $key => $values)
+	        {
+	            foreach ($values as $i => $value)
+	            {
+	                $newRet[$i][$key] = $value; 
+	            }
+	        }
+	        $ret = $newRet;
+	    }
+	    $ret['isMultipleModels'] = $isMultipleModels;
+	    
+	    return $ret;
 	}
 	
 	public function getJoinDataKey($model)
@@ -271,6 +362,16 @@ abstract class MySQLModel extends DatabaseModel
     private $_connection;
 	private $_queryHandle;
 	private $_query;
+	
+	/** Used for fetchObject() */
+	private $_fetchObjectBuffer;
+	
+	public function __construct()
+	{
+	    parent::__construct();
+	    
+	    $this->_fetchObjectBuffer = false;
+	}
     
 	abstract public function getTable();
     
@@ -396,6 +497,20 @@ abstract class MySQLModel extends DatabaseModel
 
 		return $ret;
 	}
+	
+	public function searchObjects($listOfSpecialClause = FALSE)
+	{
+		// takes the set member variables and returns an array of of matching rows
+		$count = $this->query($listOfSpecialClause);
+
+		$ret = array();
+		while ($model = $this->fetchObject())
+		{
+			$ret[] = $model;
+		}
+		
+		return $ret;
+	}
 
 	/**
 	 * Takes the parts of the current model that are set and does a search of the persistence for it.
@@ -416,13 +531,12 @@ abstract class MySQLModel extends DatabaseModel
 		$conditionSep = '';
 		$special = '';    // order by, group by, limit
 		
-		// ensure $listOfSpecialClause is an array
 		if (!is_array($listOfSpecialClause))
 		{
 		    $listOfSpecialClause = array($listOfSpecialClause);
 		}
 
-	    $joinAssocs = $this->getJoinTableAssociations();	    
+	    $joinAssocs = $this->getJoinTableAssociations();	
 	    foreach ($joinAssocs as $key => $assoc)
 	    { 
 	        if (array_search($key, $this->_joinArray) !== FALSE)
@@ -500,7 +614,6 @@ abstract class MySQLModel extends DatabaseModel
         {
             $where .= $conditions;
         }
-        
 		$this->sqlQuery("select $columns from $tables $where $special");
 		
 		return mysql_num_rows($this->_queryHandle);
@@ -511,11 +624,15 @@ abstract class MySQLModel extends DatabaseModel
 	    $table = $this->escapeTable($model->getTable());
 	    $cols = $model->getMemberVariables();
 	    
-	    $ret = '';
+	    $pkey = $model->getPrimaryKey();
+	    $ret = $columnSep.$table.'.'.$this->escapeColumn($pkey).' as '.$this->escapeColumn($prefixColumnNames ? $prefixColumnNames.'_'.$pkey : $pkey);
 	    foreach ($cols as $col => $value)
 	    {
-	        $ret .= $columnSep.$table.'.'.$this->escapeColumn($col).' as '.$this->escapeColumn($prefixColumnNames ? $prefixColumnNames.'_'.$col : $col);
-	        $columnSep = ', ';
+	        if ($col == $pkey)
+	        {
+	            continue;
+	        }
+	        $ret .= ', '.$table.'.'.$this->escapeColumn($col).' as '.$this->escapeColumn($prefixColumnNames ? $prefixColumnNames.'_'.$col : $col);
 	    }
 	    
 	    return $ret;
@@ -558,12 +675,89 @@ abstract class MySQLModel extends DatabaseModel
 			return FALSE;
 		}
 
-		$modelName = get_class($this);
-		$model = new $modelName();
+		return $this->createNewModel($row);
+	}
+	
+	public function fetchObject()
+	{
+	    if (is_null($this->_queryHandle))
+	    {
+	        throw new SearchException('No query has been made');
+	    }
+        $column = $this->getPrimaryKey();
+        
+        if ($this->_fetchObjectBuffer)
+        {
+    	    $lastPrimaryKey = $this->_fetchObjectBuffer[$column];
+    	    $ret = $this->_fetchObjectBuffer;
+    	    $this->_fetchObjectBuffer = FALSE;
+        }
+        else
+        {
+            $lastPrimaryKey = FALSE;
+            $ret = array();
+        }
+            
+        while ($row = mysql_fetch_assoc($this->_queryHandle))
+        {
+            if ($lastPrimaryKey === FALSE || $row[$column] == $lastPrimaryKey)
+            {
+                $ret = $this->mergeRows($ret, $row);
+                $lastPrimaryKey = $row[$column];
+            }
+            else
+            {
+                $this->_fetchObjectBuffer = $row;
+                $lastPrimaryKey = $row[$column];
+                break;
+            }
+        }
+        
+	    return $this->createNewModel($ret);
+	}
+	
+	private function mergeRows($rowA, $rowB)
+	{
+	    if (!$rowA)
+	    {
+	        return $rowB;
+	    }
+	    
+	    $ret = $rowA;
+	    foreach ($rowB as $key => $value)
+	    {
+	        $a = array_key_exists($key, $rowA) ? $rowA[$key] : false;
+	        $b = $value;
 
-		$model->populate($row);
-
-		return $model;
+	        if (is_array($a))
+	        {
+	            $ret[$key][] = $b;
+	            $ret[$key] = array_unique($ret[$key]);
+	        }
+	        else if ($a != $value)
+	        {
+	            $ret[$key] = array($a, $b);
+	        }
+	    }
+	    
+	    return $ret;
+	}
+	
+	protected function createNewModel($data)
+	{
+	    if (empty($data))
+	    {
+	        return FALSE;
+	    }
+	    
+	    // don't call parent, because we need to inject setJoins after new model has been created, but before populate is called
+	    $modelName = get_class($this);
+	    $model = new $modelName();
+	    
+	    $model->setJoins($this->_joinArray);
+	    $model->populate($data);
+	    
+	    return $model;
 	}
 
 	public function debug()
@@ -593,6 +787,7 @@ abstract class MySQLModel extends DatabaseModel
 
 	private function sqlQuery($sql)
 	{
+	    debug($sql);
 		$h = mysql_query($sql);
 		
 		if ($h === false)

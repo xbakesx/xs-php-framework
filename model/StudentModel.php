@@ -2,7 +2,7 @@
 
 class StudentModel extends MySQLModel 
 {
-    const CLASS_STUDENT_MANY_TO_MANY = 0;
+    const CLASS_STUDENT_MANY_TO_MANY = 'class';
     
     protected $id;
     protected $name;

@@ -35,6 +35,16 @@ class ClassModel extends MySQLModel
                 'localKey' => 'teacher_id', // matches local variable
                 'foreignKey' => 'id',       // matches table column for foreign table
                 'foreignModel' => 'teacher' // matches prefix of the model ('user' for UserModel)
+            ),
+            StudentModel::CLASS_STUDENT_MANY_TO_MANY => array(
+                'relationship' => MySQLModel::MANY_TO_MANY,
+                'policy' => MySQLModel::LEFT_JOIN,
+                'localKey' => 'id',                    // matches local variable
+                'foreignKey' => 'id',                  // matches table column for foreign table
+                'joinTable' => 'student_class_assoc',  // table to join on for the many-to-many relationships
+                'assocLocalKey' => 'class_id',       // key joined on localKey
+                'assocForeignKey' => 'student_id',     // key joined on foreignKey
+                'foreignModel' => 'student'            // matches prefix of the model ('user' for UserModel)
             )
         );
     }
