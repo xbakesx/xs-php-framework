@@ -19,6 +19,7 @@ $defaultName = 'index';
 // configure app
 $app = new App();
 App::$DATABASE_CONNECTIONS = $app->getDatabaseConnections();
+includeElement($app->getModels(), 'model');
 
 // parse url
 $path = explode('/', $_SERVER['REQUEST_URI']);

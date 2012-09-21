@@ -69,9 +69,5 @@ abstract class BaseApp implements AppInterface
         return true;
     }
     
-    final public function getModels()
-    {
-        return array();
-    }
 }
 
