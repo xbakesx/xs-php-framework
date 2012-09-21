@@ -154,13 +154,21 @@ abstract class DatabaseModel extends Model implements PersistentStore
 	abstract public function getPrimaryKey();
 	/**
 	 * @param string the name of a model to get joined entries on
-	 * @return array an array populated with models which is the result of joins on other models (tables)
+	 * @return array an array populated with models which is the result of joins on other models (tables) or an empty array if nothing matches the argument
 	 */
 	public function getJoinData($model = FALSE)
 	{
 	    if ($model !== FALSE)
 	    {
-	        return $this->_joinData[$this->getJoinDataKey($model)];
+	        $key = $this->getJoinDataKey($model);
+	        if (array_key_exists($key, $this->_joinData))
+	        {
+	            return $this->_joinData[$key];
+	        }
+	        else 
+	        {
+	            return array();
+	        }
 	    }
 	    else
 	    {
