@@ -21,6 +21,7 @@ interface ControllerInterface
 abstract class Controller implements ControllerInterface
 {
     public $_app;
+    private $_css;
     private $_js;
     
     /**
@@ -29,6 +30,7 @@ abstract class Controller implements ControllerInterface
     function __construct($app) 
     {
         $this->_app = $app;
+        $this->_css = array();
         $this->_js = array();
     }
     
@@ -75,12 +77,25 @@ abstract class Controller implements ControllerInterface
         return "../view/$view.php";
     }
     
+    public function getAllCss()
+    {
+        $controllerCss = $this->getCss();
+        $css = ($controllerCss === FALSE) ? $this->_app->getCss() : $controllerCss;
+        
+        return array_merge($css, $this->_css);
+    }
+    
     public function getAllJs()
     {
         $controllerJs = $this->getJs();
         $js = ($controllerJs === FALSE) ? $this->_app->getJs() : $controllerJs;
         
         return array_merge($js, $this->_js);
+    }
+    
+    protected function addCss($cssFile)
+    {
+        $this->_css[] = $cssFile;
     }
     
     protected function addJs($jsFile)

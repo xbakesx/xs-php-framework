@@ -51,7 +51,7 @@
         	    echo '<link rel="shortcut icon" href="'.$favicon.'">'."\n";
         	}
         	
-        	$cssFiles = isset($controller) && $controller->getCss() !== FALSE ? $controller->getCss() : $app->getCss();
+        	$cssFiles = isset($controller) ? $controller->getAllCss() : $app->getCss();
         	foreach ($cssFiles as $css)
         	{
         	    $url = false;
