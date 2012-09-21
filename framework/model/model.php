@@ -333,6 +333,34 @@ abstract class DatabaseModel extends Model implements PersistentStore
 	{
 	    return strtolower($model);
 	}
+
+	public function toArray()
+	{
+		$ret = parent::toArray();
+		$this->toArrayFromObject($ret, 'joinData', $this->_joinData);
+		return $ret;
+	}
+	
+	private function toArrayFromObject(&$array, $key, $value)
+	{
+	    if (is_object($value))
+	    {
+	        $array[$key] = $value->toArray();
+	    }
+	    else 
+	    {
+	        $tmp = $value;
+    	    if (is_array($value))
+    	    {
+    	        foreach ($value as $k => $v)
+    	        {
+    	            $this->toArrayFromObject($tmp, $k, $v);
+    	        }
+    	    }
+    	    
+    	    $array[$key] = $tmp;
+	    }
+	}
 	
 	protected function getMemberVariables()
 	{
