@@ -259,7 +259,8 @@ abstract class DatabaseModel extends Model implements PersistentStore
             	            {
             	                $this->_joinData[$key] = array();
             	            }
-            	            $this->_joinData[$key][$newModel->getPrimaryKey()] = $newModel;
+            	            $pkey = $newModel->getPrimaryKey();
+            	            $this->_joinData[$key][$newModel->$pkey] = $newModel;
             	            $count += $subcount;
             	        }
     	            }
@@ -275,7 +276,8 @@ abstract class DatabaseModel extends Model implements PersistentStore
         	            {
         	                $this->_joinData[$key] = array();
         	            }
-        	            $this->_joinData[$key][] = $newModel;
+        	            $pkey = $newModel->getPrimaryKey();
+        	            $this->_joinData[$key][$newModel->$pkey] = $newModel;
         	            $count += $subcount;
         	        }
     	        }
