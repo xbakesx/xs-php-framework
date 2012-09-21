@@ -259,7 +259,7 @@ abstract class DatabaseModel extends Model implements PersistentStore
             	            {
             	                $this->_joinData[$key] = array();
             	            }
-            	            $this->_joinData[$key][] = $newModel;
+            	            $this->_joinData[$key][$newModel->getPrimaryKey()] = $newModel;
             	            $count += $subcount;
             	        }
     	            }
@@ -319,7 +319,10 @@ abstract class DatabaseModel extends Model implements PersistentStore
 	        {
 	            foreach ($values as $i => $value)
 	            {
-	                $newRet[$i][$key] = $value; 
+	                if (!is_null($value))
+	                {
+	                    $newRet[$i][$key] = $value;
+	                } 
 	            }
 	        }
 	        $ret = $newRet;
