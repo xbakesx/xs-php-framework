@@ -42,6 +42,7 @@ class ClassModel extends MySQLModel
                 'localKey' => 'id',                    // matches local variable
                 'foreignKey' => 'id',                  // matches table column for foreign table
                 'joinTable' => 'student_class_assoc',  // table to join on for the many-to-many relationships
+                'joinColumns' => array('year'),
                 'assocLocalKey' => 'class_id',       // key joined on localKey
                 'assocForeignKey' => 'student_id',     // key joined on foreignKey
                 'foreignModel' => 'student'            // matches prefix of the model ('user' for UserModel)

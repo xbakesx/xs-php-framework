@@ -41,6 +41,11 @@ abstract class BaseApp implements AppInterface
         return array();
     }
     
+    public function getModels()
+    {
+        return array();
+    }
+    
     public function getDoctype()
     {
         return AppInterface::HTML_VERSION_5;

@@ -2,6 +2,7 @@
 
 class TeacherModel extends MySQLModel 
 {
+    protected $id;
     protected $name;
     
     public function getName()
