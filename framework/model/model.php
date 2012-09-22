@@ -124,6 +124,7 @@ abstract class DatabaseModel extends Model implements PersistentStore
 	protected $_joinArray;
 	protected $_primaryKey;
 	protected $_joinData;
+	protected $_pivotData;
 
 	public function __construct()
 	{
@@ -256,7 +257,7 @@ abstract class DatabaseModel extends Model implements PersistentStore
     	        unset($modelData['isMultipleModels']);
     	        if ($isMultipleModels)
     	        {
-    	            foreach ($modelData as $values)
+    	            foreach ($modelData as $i => $values)
     	            {
     	                $newModel = new $foreignModelName();
     	                $subcount = $newModel->populate($values);
@@ -268,6 +269,11 @@ abstract class DatabaseModel extends Model implements PersistentStore
             	                $this->_joinData[$key] = array();
             	            }
             	            $pkey = $newModel->getPrimaryKey();
+            	            $joinTableData = $this->populateJoinTable($array, $assoc);
+            	            if ($joinTableData)
+            	            {
+            	                $newModel->_pivotData = $joinTableData[$i];
+            	            }
             	            $this->_joinData[$key][$newModel->$pkey] = $newModel;
             	            $count += $subcount;
             	        }
@@ -285,11 +291,15 @@ abstract class DatabaseModel extends Model implements PersistentStore
         	                $this->_joinData[$key] = array();
         	            }
         	            $pkey = $newModel->getPrimaryKey();
+        	            $joinTableData = $this->populateJoinTable($array, $assoc);
+        	            if ($joinTableData)
+        	            {
+        	                $newModel->_pivotData = $joinTableData[$i];
+        	            }
         	            $this->_joinData[$key][$newModel->$pkey] = $newModel;
         	            $count += $subcount;
         	        }
     	        }
-    	         
 	        }
 	    }
 	    return $count;
@@ -342,9 +352,29 @@ abstract class DatabaseModel extends Model implements PersistentStore
 	    return $ret;
 	}
 	
+	private function populateJoinTable($array, $assoc)
+	{
+	    if (array_key_exists('joinTable', $assoc))
+	    {
+	        $joinTable = $assoc['joinTable'];
+	        $joinData = $this->extractData($array, $joinTable.'_');
+	        unset($joinData['isMultipleModels']);
+	        return $joinData;
+	    }
+	    else
+	    {
+	        return FALSE;
+	    }
+	}
+	
 	public function getJoinDataKey($model)
 	{
 	    return strtolower($model);
+	}
+	
+	public function getPivotData()
+	{
+	    return $this->_pivotData;
 	}
 
 	public function toArray()
@@ -383,6 +413,7 @@ abstract class DatabaseModel extends Model implements PersistentStore
 		unset($vars['_joinArray']);
 		unset($vars['_primaryKey']);
 		unset($vars['_joinData']);
+		unset($vars['_pivotData']);
 
 		return $vars;
 	}
@@ -595,6 +626,10 @@ abstract class MySQLModel extends DatabaseModel
 	            
 	            if (isset($assoc['relationship']) && $assoc['relationship'] === MySQLModel::MANY_TO_MANY)
 	            {
+	                if (array_key_exists('joinTable', $assoc))
+	                {
+	                    $columns .= $this->getPivotTableColumnSql($assoc['joinTable'], $assoc['joinColumns'], $columnSep);
+	                }
 	                $joinTable = $this->escapeTable($assoc['joinTable']);
     	                
 	                $cond1 = $table.'.'.$this->escapeColumn($assoc['localKey']).' = '.$joinTable.'.'.$this->escapeColumn($assoc['assocLocalKey']);
@@ -676,6 +711,18 @@ abstract class MySQLModel extends DatabaseModel
 	        $ret .= ', '.$table.'.'.$this->escapeColumn($col).' as '.$this->escapeColumn($prefixColumnNames ? $prefixColumnNames.'_'.$col : $col);
 	    }
 	    
+	    return $ret;
+	}
+	
+	private function getPivotTableColumnSql($table, $columns, $columnSep)
+	{
+	    $escapedTable = $this->escapeTable($table);
+	    $ret = '';
+	    foreach ($columns as $column)
+	    {
+	        $ret .= $columnSep.$escapedTable.'.'.$this->escapeColumn($column).' as '.$this->escapeColumn($table.'_'.$column);
+	        $columnSep = ', ';
+	    }
 	    return $ret;
 	}
 	
