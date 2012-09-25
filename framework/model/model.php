@@ -626,7 +626,8 @@ abstract class MySQLModel extends DatabaseModel
 		    $listOfSpecialClause = array($listOfSpecialClause);
 		}
 
-	    $joinAssocs = $this->getJoinTableAssociations();	
+	    $joinAssocs = $this->getJoinTableAssociations();
+	    $joinModels = array();
 	    foreach ($joinAssocs as $key => $assoc)
 	    { 
 	        if (array_search($key, $this->_joinArray) !== FALSE)
@@ -637,6 +638,7 @@ abstract class MySQLModel extends DatabaseModel
 	            $foreignModel = $assoc['foreignModel'].'Model';
 	            includeElement(array($foreignModel.'.php'), 'model');
 	            $foreignModel = new $foreignModel();
+	            $joinModels[] = $foreignModel;
 	            $foreignTable = $this->escapeTable($foreignModel->getTable());
 	            
 	            $columns .= $this->getAllColumnSql($foreignModel, $columnSep, $assoc['foreignModel']);
@@ -685,6 +687,18 @@ abstract class MySQLModel extends DatabaseModel
 	                }
 	            }
 	        }
+	    }
+	    
+	    if (!empty($joinModels))
+	    {
+	        $listOfSpecialClause[] = new MySQLOrderBy($this->getPrimaryKey(), MySQLOrderBy::Ascending);
+	        
+	        /*
+	        foreach ($joinModels as $model)
+	        {
+	            $listOfSpecialClause[] = new MySQLOrderBy($model->getPrimaryKey(), MySQLOrderBy::Ascending);
+	        }
+	        */
 	    }
 	    
 	    $columns .= $this->getAllColumnSql($this, $columnSep);
