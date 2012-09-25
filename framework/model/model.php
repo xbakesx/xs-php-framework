@@ -921,7 +921,6 @@ abstract class MySQLModel extends DatabaseModel
 
 	private function sqlQuery($sql)
 	{
-	    debug($sql);
 		$h = mysql_query($sql);
 		
 		if ($h === false)
