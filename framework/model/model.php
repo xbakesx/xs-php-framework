@@ -124,6 +124,7 @@ abstract class DatabaseModel extends Model implements PersistentStore
 	protected $_joinArray;
 	protected $_primaryKey;
 	protected $_joinData;
+	protected $_joinConditions;
 	protected $_pivotData;
 
 	public function __construct()
@@ -142,6 +143,7 @@ abstract class DatabaseModel extends Model implements PersistentStore
 		
 		$this->_joinArray = array();
 		$this->_joinData = array();
+		$this->_joinConditions = array();
 	}
 
 	/**
@@ -240,6 +242,21 @@ abstract class DatabaseModel extends Model implements PersistentStore
 	    $this->_joinArray = $joinIds;
 	}
 	
+	/**
+	 * @param DatabaseModel $joinModels models to use in order to set conditions on joined models
+	 */
+	public function setJoinConditions($joinModels)
+	{
+	    if (is_array($joinModels))
+	    {
+	        $this->_joinConditions = $joinModels;
+	    }
+	    else
+	    {
+	        $this->_joinConditions = array($joinModels);
+	    }
+	}
+	
 	public function populate(&$array, $prefix = '')
 	{
 	    $count = parent::populate($array, $prefix);
@@ -294,7 +311,7 @@ abstract class DatabaseModel extends Model implements PersistentStore
         	            $joinTableData = $this->populateJoinTable($array, $assoc);
         	            if ($joinTableData)
         	            {
-        	                $newModel->_pivotData = $joinTableData[$i];
+        	                $newModel->_pivotData = array_shift($joinTableData);
         	            }
         	            $this->_joinData[$key][$newModel->$pkey] = $newModel;
         	            $count += $subcount;
@@ -413,6 +430,7 @@ abstract class DatabaseModel extends Model implements PersistentStore
 		unset($vars['_joinArray']);
 		unset($vars['_primaryKey']);
 		unset($vars['_joinData']);
+		unset($vars['_joinConditions']);
 		unset($vars['_pivotData']);
 
 		return $vars;
@@ -673,7 +691,16 @@ abstract class MySQLModel extends DatabaseModel
 	    
 	    if (!empty($props))
 	    {
-	        $conditions .= $this->getWhereClause($props, $table, $listOfSpecialClause, $conditionSep);
+	        $conditions .= $this->getWhereClause($props, $this->getTable(), $listOfSpecialClause, $conditionSep);
+	        $conditionSep = ' and ';
+	    }
+	    
+	    foreach ($this->_joinConditions as $model)
+	    {
+	        $joinProps = $model->getSetMemberVariables();
+	        $joinTable = $model->getTable();
+	        
+	        $conditions .= $this->getWhereClause($joinProps, $joinTable, $listOfSpecialClause, $conditionSep);
 	        $conditionSep = ' and ';
 	    }
 	    
@@ -728,17 +755,18 @@ abstract class MySQLModel extends DatabaseModel
 	
 	private function getWhereClause($props, $table, $listOfSpecialClause = array(), $conditionSep = '')
 	{
+	    $escapedTable = $this->escapeTable($table);
 	    $ret = '';
         $operators = $this->getOperators($listOfSpecialClause);
         
 		foreach ($props as $col => $value)
 		{
 		    $op = '=';
-		    if (isset($operators[$col]))
+		    if (isset($operators[$table][$col]))
 		    {
-		        $op = $operators[$col];
+		        $op = $operators[$table][$col];
 		    }
-			$ret .= $conditionSep.$table.'.'.$this->escapeColumn($col).' '.$op.' '.$this->escapeValue($value);
+			$ret .= $conditionSep.$escapedTable.'.'.$this->escapeColumn($col).' '.$op.' '.$this->escapeValue($value);
 			$conditionSep = ' and ';
 		}
 		
@@ -879,6 +907,7 @@ abstract class MySQLModel extends DatabaseModel
 
 	private function sqlQuery($sql)
 	{
+	    debug($sql);
 		$h = mysql_query($sql);
 		
 		if ($h === false)
@@ -933,7 +962,7 @@ abstract class MySQLModel extends DatabaseModel
 	    {
 	        if ($clause instanceof MySQLOperator)
 	        {
-	            $ret[$clause->getColumn()] = $clause->getOperator();
+	            $ret[$clause->getTable()][$clause->getColumn()] = $clause->getOperator();
 	        }
 	    }
 	    return $ret;
@@ -1076,23 +1105,39 @@ class MySQLLimit extends MySQLSpecialClause {
 
 class MySQLOperator implements MySQLCondition {
     
-    private $column;
-    private $operator;
+    private $_table;
+    private $_column;
+    private $_operator;
     
-    public function __construct($column, $operator)
+    public function __construct($operator, $column, $table)
     {
-        $this->column = $column;
-        $this->operator = $operator;
+        $this->_column = $column;
+        $this->_operator = $operator;
+        $this->_table = $table;
     }
     
+    /**
+     * @return string the name of the table this column and operator apply to
+     */
+    public function getTable()
+    {
+        return $this->_table;
+    }
+    
+    /**
+     * @return string the name of the database column this operator will apply to
+     */
     public function getColumn()
     {
-        return $this->column;
+        return $this->_column;
     }
     
+    /**
+     * @return string the operator to apply to getColumn()
+     */
     public function getOperator()
     {
-        return $this->operator;
+        return $this->_operator;
     }
 }
 
