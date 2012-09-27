@@ -48,8 +48,13 @@ class IndexController extends Controller
         try
         {
             $classes = new ClassModel();
+            $teacher = new TeacherModel();
+            $teacher->setName('%Dooley');
+            $student = new StudentModel();
+            $student->setName('%man');
             $classes->setJoins(array(ClassModel::TEACHER_ASSOC, StudentModel::CLASS_STUDENT_MANY_TO_MANY));
-            $ret = $classes->searchObjects();
+            $classes->setJoinConditions(array($student));
+            $ret = $classes->searchObjects(array(new MySQLOperator('like', 'name', 'student'), new MySQLOperator('like', 'name', 'teacher')));
         }
         catch (MySQLException $ex)
         {
@@ -86,16 +91,19 @@ CREATE_TABLE;
     public function students($args)
     {
         $limit = array_shift($args);
+        $ops = array(new MySQLOrderBy('student', 'birthday', MySQLOrderBy::Ascending));
         if ($limit)
         {
             $students = new StudentModel(array(), array('birthday' => '>'));
             $students->setBirthday($limit);
+            $ops[] = new MySQLOperator('student','birthday', '<');
         }
         else
         {
             $students = new StudentModel();
         }
-        $ret = array('limit' => $limit, 'students' => $students->search(new MySQLOperator('birthday', '<')));
+        
+        $ret = array('limit' => $limit, 'students' => $students->search($ops));
         
         return $ret;
     }

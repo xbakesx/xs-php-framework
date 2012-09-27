@@ -280,7 +280,7 @@ abstract class DatabaseModel extends Model implements PersistentStore
     	                $subcount = $newModel->populate($values);
             	        if ($subcount > 0)
             	        {
-            	            $key = $this->getJoinDataKey($foreignModelName);
+            	            $key = $this->getJoinDataKey($assoc['foreignModel']);
             	            if (!isset($this->_joinData[$key]))
             	            {
             	                $this->_joinData[$key] = array();
@@ -302,7 +302,7 @@ abstract class DatabaseModel extends Model implements PersistentStore
     	            $subcount = $newModel->populate($modelData);
         	        if ($subcount > 0)
         	        {
-        	            $key = $this->getJoinDataKey($foreignModelName);
+        	            $key = $this->getJoinDataKey($assoc['foreignModel']);
         	            if (!isset($this->_joinData[$key]))
         	            {
         	                $this->_joinData[$key] = array();
@@ -507,7 +507,7 @@ abstract class MySQLModel extends DatabaseModel
 		$columns = '`'.implode('`,`', array_keys($props)).'`';
 		$values = "'".implode("','", $this->escapedArrayValues($props))."'";
 
-		$this->sqlQuery("insert into {$this->escapeTable($this->getTable())} ($columns) values ($values)");
+		$this->sqlQuery("insert into ".MySQLModel::escapeTable($this->getTable())." ($columns) values ($values)");
 	}
 
 	/**
@@ -538,11 +538,11 @@ abstract class MySQLModel extends DatabaseModel
 	    $sep = ' SET ';
 	    foreach ($props as $key => $value)
 	    {
-	        $set .= $sep.$this->escapeColumn($key).' = '.$this->escapeValue($value);
+	        $set .= $sep.MySQLModel::escapeColumn($key).' = '.$this->escapeValue($value);
 	        $sep = ', ';
 	    }
 
-	    return $this->sqlQuery("update {$this->escapeTable($this->getTable())} $set WHERE {$this->escapeColumn($primaryKeyColumn)} = {$this->escapeValue($primaryKeyValue)}");
+	    return $this->sqlQuery("update ".MySQLModel::escapeTable($this->getTable())." $set WHERE ".MySQLModel::escapeColumn($primaryKeyColumn)." = ".$this->escapeValue($primaryKeyValue));
 	}
 
 	/**
@@ -554,7 +554,7 @@ abstract class MySQLModel extends DatabaseModel
 	    $where = '';
 	    if (!empty($props))
 	    {
-	        $table = $this->escapeTable($this->getTable());
+	        $table = MySQLModel::escapeTable($this->getTable());
 	        
 	        // ensure $listOfSpecialClause is an array
 	        if (!is_array($listOfSpecialClause))
@@ -564,7 +564,7 @@ abstract class MySQLModel extends DatabaseModel
 	        
 	        $where = ' WHERE '.$this->getWhereClause($props, $table, $listOfSpecialClause);
 	    }
-		$this->sqlQuery("delete from {$this->escapeTable($this->getTable())}$where");
+		$this->sqlQuery("delete from ".MySQLModel::escapeTable($this->getTable()).$where);
 	}
 
 	/**
@@ -604,14 +604,14 @@ abstract class MySQLModel extends DatabaseModel
 
 	/**
 	 * Takes the parts of the current model that are set and does a search of the persistence for it.
-	 * @param array $listOfSpecialClause this is an array of MySQLCondition
+	 * @param array $listOfSpecialClause this is an array of MySQLClause
 	 * @return the number of results
 	 * @throws SearchException on an error
 	 */
 	public function query($listOfSpecialClause = array())
 	{
 		$props = $this->getSetMemberVariables();
-	    $table = $this->escapeTable($this->getTable());
+	    $table = MySQLModel::escapeTable($this->getTable());
 	    
 	    $where = 'where ';
 	    $tables = $table;
@@ -639,7 +639,7 @@ abstract class MySQLModel extends DatabaseModel
 	            includeElement(array($foreignModel.'.php'), 'model');
 	            $foreignModel = new $foreignModel();
 	            $joinModels[] = $foreignModel;
-	            $foreignTable = $this->escapeTable($foreignModel->getTable());
+	            $foreignTable = MySQLModel::escapeTable($foreignModel->getTable());
 	            
 	            $columns .= $this->getAllColumnSql($foreignModel, $columnSep, $assoc['foreignModel']);
 	            $columnSep = ',';
@@ -650,18 +650,18 @@ abstract class MySQLModel extends DatabaseModel
 	                {
 	                    $columns .= $this->getPivotTableColumnSql($assoc['joinTable'], $assoc['joinColumns'], $columnSep);
 	                }
-	                $joinTable = $this->escapeTable($assoc['joinTable']);
+	                $joinTable = MySQLModel::escapeTable($assoc['joinTable']);
     	                
-	                $cond1 = $table.'.'.$this->escapeColumn($assoc['localKey']).' = '.$joinTable.'.'.$this->escapeColumn($assoc['assocLocalKey']);
-	                $cond2 = $joinTable.'.'.$this->escapeColumn($assoc['assocForeignKey']).' = '.$foreignTable.'.'.$this->escapeColumn($assoc['foreignKey']);
+	                $cond1 = $table.'.'.MySQLModel::escapeColumn($assoc['localKey']).' = '.$joinTable.'.'.MySQLModel::escapeColumn($assoc['assocLocalKey']);
+	                $cond2 = $joinTable.'.'.MySQLModel::escapeColumn($assoc['assocForeignKey']).' = '.$foreignTable.'.'.MySQLModel::escapeColumn($assoc['foreignKey']);
 	                
 	                if (isset($assoc['policy']) && $assoc['policy'] == MySQLModel::LEFT_JOIN)
 	                {
-    	                $tables .= ' left join '.$this->escapeTable($assoc['joinTable']).' on '.$cond1.' left join '.$foreignTable.' on '.$cond2;
+    	                $tables .= ' left join '.MySQLModel::escapeTable($assoc['joinTable']).' on '.$cond1.' left join '.$foreignTable.' on '.$cond2;
 	                }
 	                else
 	                {
-    	                $tables .= ', '.$this->escapeTable($assoc['joinTable']).', '.$foreignTable;
+    	                $tables .= ', '.MySQLModel::escapeTable($assoc['joinTable']).', '.$foreignTable;
     	                
     	                $conditions .= $conditionSep.$cond1;
     	                $conditionSep = ' and ';
@@ -672,7 +672,7 @@ abstract class MySQLModel extends DatabaseModel
 	            }
 	            else
 	            {
-	                $cond = $table.'.'.$this->escapeColumn($assoc['localKey']).' = '.$foreignTable.'.'.$this->escapeColumn($assoc['foreignKey']);
+	                $cond = $table.'.'.MySQLModel::escapeColumn($assoc['localKey']).' = '.$foreignTable.'.'.MySQLModel::escapeColumn($assoc['foreignKey']);
 	                
 	                if (isset($assoc['policy']) && $assoc['policy'] == MySQLModel::LEFT_JOIN)
 	                {
@@ -691,7 +691,7 @@ abstract class MySQLModel extends DatabaseModel
 	    
 	    if (!empty($joinModels))
 	    {
-	        $listOfSpecialClause[] = new MySQLOrderBy($this->getPrimaryKey(), MySQLOrderBy::Ascending);
+	        $listOfSpecialClause[] = new MySQLOrderBy($this->getTable(), $this->getPrimaryKey(), MySQLOrderBy::Ascending);
 	        
 	        /*
 	        foreach ($joinModels as $model)
@@ -738,18 +738,18 @@ abstract class MySQLModel extends DatabaseModel
 	
 	private function getAllColumnSql(&$model, $columnSep, $prefixColumnNames = false)
 	{
-	    $table = $this->escapeTable($model->getTable());
+	    $table = MySQLModel::escapeTable($model->getTable());
 	    $cols = $model->getMemberVariables();
 	    
 	    $pkey = $model->getPrimaryKey();
-	    $ret = $columnSep.$table.'.'.$this->escapeColumn($pkey).' as '.$this->escapeColumn($prefixColumnNames ? $prefixColumnNames.'_'.$pkey : $pkey);
+	    $ret = $columnSep.$table.'.'.MySQLModel::escapeColumn($pkey).' as '.MySQLModel::escapeColumn($prefixColumnNames ? $prefixColumnNames.'_'.$pkey : $pkey);
 	    foreach ($cols as $col => $value)
 	    {
 	        if ($col == $pkey)
 	        {
 	            continue;
 	        }
-	        $ret .= ', '.$table.'.'.$this->escapeColumn($col).' as '.$this->escapeColumn($prefixColumnNames ? $prefixColumnNames.'_'.$col : $col);
+	        $ret .= ', '.$table.'.'.MySQLModel::escapeColumn($col).' as '.MySQLModel::escapeColumn($prefixColumnNames ? $prefixColumnNames.'_'.$col : $col);
 	    }
 	    
 	    return $ret;
@@ -757,11 +757,11 @@ abstract class MySQLModel extends DatabaseModel
 	
 	private function getPivotTableColumnSql($table, $columns, $columnSep)
 	{
-	    $escapedTable = $this->escapeTable($table);
+	    $escapedTable = MySQLModel::escapeTable($table);
 	    $ret = '';
 	    foreach ($columns as $column)
 	    {
-	        $ret .= $columnSep.$escapedTable.'.'.$this->escapeColumn($column).' as '.$this->escapeColumn($table.'_'.$column);
+	        $ret .= $columnSep.$escapedTable.'.'.MySQLModel::escapeColumn($column).' as '.MySQLModel::escapeColumn($table.'_'.$column);
 	        $columnSep = ', ';
 	    }
 	    return $ret;
@@ -769,7 +769,7 @@ abstract class MySQLModel extends DatabaseModel
 	
 	private function getWhereClause($props, $table, $listOfSpecialClause = array(), $conditionSep = '')
 	{
-	    $escapedTable = $this->escapeTable($table);
+	    $escapedTable = MySQLModel::escapeTable($table);
 	    $ret = '';
         $operators = $this->getOperators($listOfSpecialClause);
         
@@ -780,7 +780,7 @@ abstract class MySQLModel extends DatabaseModel
 		    {
 		        $op = $operators[$table][$col];
 		    }
-			$ret .= $conditionSep.$escapedTable.'.'.$this->escapeColumn($col).' '.$op.' '.$this->escapeValue($value);
+			$ret .= $conditionSep.$escapedTable.'.'.MySQLModel::escapeColumn($col).' '.$op.' '.$this->escapeValue($value);
 			$conditionSep = ' and ';
 		}
 		
@@ -953,12 +953,12 @@ abstract class MySQLModel extends DatabaseModel
 		return $ret;
 	}
 	
-	private function escapeTable($table)
+	public static function escapeTable($table)
 	{
 	    return '`'.$table.'`';
 	}
 	
-	private function escapeColumn($column)
+	public static function escapeColumn($column)
 	{
 	    return '`'.$column.'`';
 	}
@@ -983,150 +983,152 @@ abstract class MySQLModel extends DatabaseModel
 	
 	private function handleSpecialClauses($specialClauses)
 	{
-		$keywordItems = array();
+	    $sortedConditions = array();
 		foreach($specialClauses as $clause)
 		{
 		    if ($clause instanceof MySQLSpecialClause)
 		    {
-				/* @var $clause MySQLSpecialClause */
-				if(!isset($keywordItems[$clause->getKeyword()]))
-				{
-					$keywordItems[$clause->getKeyword()]=array();
-				}
-				$keywordItems[$clause->getKeyword()][] = $clause->getData().',';
+    		    if (array_key_exists($clause->getOrder(), $sortedConditions))
+    		    {
+    		        $sortedConditions[$clause->getOrder()] .= ', '.$clause->getClause();
+    		    }
+    		    else
+    		    {
+    		        $sortedConditions[$clause->getOrder()] = $clause->getKeyword().' '.$clause->getClause();
+    		    }
 		    }
 		}
+		ksort($sortedConditions);
 		
-		$strRet = '';
-		if(isset($keywordItems['group by'])){
-			$arrayItem['group by'] = $keywordItems['group by'];
-			$strRet .= MySQLSpecialClause::buildCondition($arrayItem);
-			unset($keywordItems['group by']);
-			$arrayItem=array();
+		$ret = '';
+		foreach ($sortedConditions as $order => $clause)
+		{
+		    $ret .= ' '.$clause;
 		}
-		
-		if(isset($keywordItems['order by'])){
-			$arrayItem['order by'] = $keywordItems['order by'];
-			$strRet .= MySQLSpecialClause::buildCondition($arrayItem);
-			unset($keywordItems['order by']);
-			$arrayItem=array();
-		}
-		
-		if(isset($keywordItems['limit'])){
-			$arrayItem['limit'] = $keywordItems['limit'];
-			$strRet .= MySQLSpecialClause::buildCondition($arrayItem);
-			unset($keywordItems['limit']);
-		}
-		
-		
-		return $strRet;
+		return $ret;
 	}
 
 }
 
-interface MySQLCondition {
+interface MySQLClause {
     
 } 
 
-class MySQLSpecialClause implements MySQLCondition 
+abstract class MySQLSpecialClause implements MySQLClause 
 {
+    private $_order;
 	private $_keyword;
-	private $_data = array();
 
-	public function __construct($keyword, $data = FALSE){
-		$this->_keyword=$keyword;
-		if ($data !== FALSE)
-		{
-		    $this->_data[] = $data;
-		}
-	}
-
-	public static function buildCondition($bundledConditions)
+	public function __construct($order, $keyword)
 	{
-		$returnString = ' ';
-		foreach($bundledConditions as $keyword =>$value){
-			$returnString.=' '.$keyword.' ';
-			if(is_array($value)){
-				//This is only currently for Order By.
-				foreach($value as $string){
-					$returnString.=$string;
-				}
-			}
-			else {
-				$returnString .= $value.'';
-			}
-			$returnString = substr($returnString, 0,-1);
-		}
-		return ($returnString);
+		$this->_order = $order;
+		$this->_keyword = $keyword;
+	}
+	
+	public function getOrder()
+	{
+	    return $this->_order;
 	}
 
 	public function getKeyword()
 	{
 		return trim(strtolower($this->_keyword));
 	}
+	
+	protected abstract function getClause();
+}
 
-	protected function addAdditionalData($data)
-	{
-		$this->_data[] = $data;
-	}
+class MySQLColumnSpecialClause extends MySQLSpecialClause {
+    
+    private $_table;
+    private $_column;
+    
+    public function __construct($order, $keyword, $table, $column)
+    {
+        parent::__construct($order, $keyword);
+        
+        $this->_table = $table;
+        $this->_column = $column;
+    }
+    
+    public function getClause()
+    {
+        return MySQLModel::escapeTable($this->_table).'.'.MySQLModel::escapeColumn($this->_column);
+    }
+}
 
-	public function getData()
+class MySQLGroupBy extends MySQLColumnSpecialClause 
+{
+	public function __construct($table, $column)
 	{
-		$data = $this->formatDataElement($this->_data);
-		//Handles for limit which only has one value following it.
-		if(strlen($data)>1){
-			$data= substr($data, 0,-1);
-		}
-		return $data;
-	}
-
-	private function formatDataElement($dataElement)
-	{
-		$stringToReturn = '';
-		foreach($dataElement as $value){
-			if(is_array($value)){
-				$stringToReturn .= $this->formatDataElement($value).',';
-			}
-			else {
-				$stringToReturn.=' '.$value.'';
-			}
-		}
-		return trim($stringToReturn);
+		parent::__construct(10, 'Group By', $table, $column);
 	}
 }
 
-class MySQLOrderBy extends MySQLSpecialClause {
+// 20 would be Having
+
+class MySQLOrderBy extends MySQLColumnSpecialClause {
+    
 	const Ascending = 'ASC';
 	const Descending = 'DESC';
+	
+	private $_direction;
 
-	public function __construct($column, $order){
-		parent::__construct('Order By ', array($column, $order));
+	public function __construct($table, $column, $direction)
+	{
+		parent::__construct(30, 'Order By', $table, $column);
+		$this->_direction = $direction;
+	}
+	
+	public function getClause()
+	{
+	    return parent::getClause().' '.$this->_direction;
 	}
 }
 
-class MySQLGroupBy extends MySQLSpecialClause {
-	public function __construct($column){
-		parent::__construct('Group By ', $column);
+class MySQLLimit extends MySQLSpecialClause 
+{
+    private $_limit;
+    
+	public function __construct($amount)
+	{
+		parent::__construct(40, 'Limit');
+		$this->_limit = $amount;
+	}
+	
+	public function getClause()
+	{
+	    return $this->_limit;
 	}
 }
 
-class MySQLLimit extends MySQLSpecialClause {
-	public function __construct($amount){
-		parent::__construct('Limit', $amount);
+class MySQLOffset extends MySQLSpecialClause 
+{
+    private $_offset;
+    
+	public function __construct($amount)
+	{
+		parent::__construct(50, 'OFFSET');
+		$this->_offset = $amount;
+	}
+	
+	public function getClause()
+	{
+	    return $this->_offset;
 	}
 }
 
-class MySQLOperator implements MySQLCondition {
+class MySQLOperator implements MySQLClause {
     
     private $_table;
     private $_column;
     private $_operator;
     
-    public function __construct($operator, $column, $table)
+    public function __construct($table, $column, $operator)
     {
+        $this->_table = $table;
         $this->_column = $column;
         $this->_operator = $operator;
-        $this->_table = $table;
     }
     
     /**

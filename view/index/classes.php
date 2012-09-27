@@ -1,5 +1,5 @@
-<h1>Model / View / Controller</h1>
-<p>Below you will see a table populated from data procured from a model (that work was done in the controller).  Then formatted into HTML in a view.</p>
+<h1>Models and Joins</h1>
+<p>Below you will see a table populated from data procured from multiple models (that work was done in the controller).  Then formatted into HTML in a view.</p>
 <?php
 
 
@@ -11,12 +11,12 @@ if (is_array($viewData))
     {
         $className = $classModel->getName();
         
-        $teachers = $classModel->getJoinData('teachermodel');
+        $teachers = $classModel->getJoinData('teacher');
         $teacherModel = array_shift($teachers);
         $teacherName = $teacherModel->getName();
         
         
-        $students = $classModel->getJoinData('studentmodel');
+        $students = $classModel->getJoinData('student');
         
         if (is_array($students))
         {
