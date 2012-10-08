@@ -50,7 +50,9 @@ abstract class Controller implements ControllerInterface
      */
     public function json($data)
     {
-        echo json_encode($data);
+    	
+    	header('Content-type: application/json');
+    	echo json_encode($data);
         exit;
     }
     
@@ -61,6 +63,11 @@ abstract class Controller implements ControllerInterface
     public function includeController($controller)
     {
         return includeController($controller, '../controller/'.$controller.'.php', $this->_app);
+    }
+    
+    public function includeModel($model)
+    {
+        return includeElement(array($model.'.php'), 'model');
     }
     
     /**
@@ -107,6 +114,21 @@ abstract class Controller implements ControllerInterface
     {
         $dbs = $this->_app->getDatabaseConnections();
         return $dbs[$key];
+    }
+    
+    protected function verifyItemsAreSet(array $items, $element=false){
+    	foreach($items as $item){
+    		if(is_array($element)===TRUE){
+    			if(!isset($element[$item])){
+    				$this->json(array('error'=>'Required Items are not present'));
+    			}
+    		}
+    		else {
+    			if(!isset($item)){
+    				$this->json(array('error'=>'Required Items are not present'));
+    			}
+    		}
+    	}
     }
     
     public function getDoctype()
