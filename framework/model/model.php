@@ -41,9 +41,9 @@ abstract class Model
 	    return $model;
 	}
 
-	public function toArray()
+	public function toArray($full = FALSE)
 	{
-		return $this->getSetMemberVariables();
+		return $full === FALSE ? $this->getSetMemberVariables() : $this->getMemberVariables();
 	}
 
 	protected final function getSetMemberVariables()
@@ -118,7 +118,7 @@ interface PersistentStore
 
 abstract class DatabaseModel extends Model implements PersistentStore
 {
-	 
+    
 	public static $connectionEstablshed = array();
 	private $_connectionKey;
 	protected $_joinArray;
@@ -163,7 +163,7 @@ abstract class DatabaseModel extends Model implements PersistentStore
 	{
 	    if ($model !== FALSE)
 	    {
-	        $key = $this->getJoinDataKey($model);
+	        $key = $model;
 	        if (array_key_exists($key, $this->_joinData))
 	        {
 	            return $this->_joinData[$key];
@@ -268,7 +268,7 @@ abstract class DatabaseModel extends Model implements PersistentStore
 	        {
     	        $foreignModel = $assoc['foreignModel'];
     	        $foreignModelName = $foreignModel.'Model';
-    	        $modelData = $this->extractData($array, $foreignModel.'_');
+    	        $modelData = $this->extractData($array, ($assoc['relationship'] === MySQLModel::MANY_TO_MANY ? $assoc['joinTable'].'_' : '').$foreignModel.'_');
     	        
     	        $isMultipleModels = $modelData['isMultipleModels'];
     	        unset($modelData['isMultipleModels']);
@@ -280,7 +280,6 @@ abstract class DatabaseModel extends Model implements PersistentStore
     	                $subcount = $newModel->populate($values);
             	        if ($subcount > 0)
             	        {
-            	            $key = $this->getJoinDataKey($assoc['foreignModel']);
             	            if (!isset($this->_joinData[$key]))
             	            {
             	                $this->_joinData[$key] = array();
@@ -302,7 +301,6 @@ abstract class DatabaseModel extends Model implements PersistentStore
     	            $subcount = $newModel->populate($modelData);
         	        if ($subcount > 0)
         	        {
-        	            $key = $this->getJoinDataKey($assoc['foreignModel']);
         	            if (!isset($this->_joinData[$key]))
         	            {
         	                $this->_joinData[$key] = array();
@@ -394,18 +392,18 @@ abstract class DatabaseModel extends Model implements PersistentStore
 	    return $this->_pivotData;
 	}
 
-	public function toArray()
+	public function toArray($full = FALSE)
 	{
-		$ret = parent::toArray();
-		$this->toArrayFromObject($ret, 'joinData', $this->_joinData);
+		$ret = parent::toArray($full);
+		$this->toArrayFromObject($ret, 'joinData', $this->_joinData, $full);
 		return $ret;
 	}
 	
-	private function toArrayFromObject(&$array, $key, $value)
+	private function toArrayFromObject(&$array, $key, $value, $full = FALSE)
 	{
 	    if (is_object($value))
 	    {
-	        $array[$key] = $value->toArray();
+	        $array[$key] = $value->toArray($full);
 	    }
 	    else 
 	    {
@@ -414,7 +412,7 @@ abstract class DatabaseModel extends Model implements PersistentStore
     	    {
     	        foreach ($value as $k => $v)
     	        {
-    	            $this->toArrayFromObject($tmp, $k, $v);
+    	            $this->toArrayFromObject($tmp, $k, $v, $full);
     	        }
     	    }
     	    
@@ -444,6 +442,7 @@ abstract class MySQLModel extends DatabaseModel
     
     const LEFT_JOIN = 1;
     const INNER_JOIN = 2;
+    const RIGHT_JOIN = 3;
     
     private $_connection;
 	private $_queryHandle;
@@ -552,19 +551,32 @@ abstract class MySQLModel extends DatabaseModel
 	{
 	    $props = $this->getSetMemberVariables();
 	    $where = '';
+	    
+	    if (!is_array($listOfSpecialClause))
+	    {
+	    	$listOfSpecialClause = array($listOfSpecialClause);
+	    }
+	    
 	    if (!empty($props))
 	    {
-	        $table = MySQLModel::escapeTable($this->getTable());
 	        
+	    	//gets escaped inside the getWhareClause
+	    	$table = $this->getTable();
 	        // ensure $listOfSpecialClause is an array
-	        if (!is_array($listOfSpecialClause))
-	        {
-	            $listOfSpecialClause = array($listOfSpecialClause);
-	        }
+	        
 	        
 	        $where = ' WHERE '.$this->getWhereClause($props, $table, $listOfSpecialClause);
 	    }
-		$this->sqlQuery("delete from ".MySQLModel::escapeTable($this->getTable()).$where);
+	    else {
+	    	$table = MySQLModel::escapeTable($this->getTable());
+	    }
+	    
+	    if($listOfSpecialClause)
+	    {
+	    	$special = $this->handleSpecialClauses($listOfSpecialClause);
+	    }
+	    
+		$this->sqlQuery("delete from ".$table.$where.$special);
 	}
 
 	/**
@@ -582,6 +594,19 @@ abstract class MySQLModel extends DatabaseModel
 		}
 		
 		return $ret;
+	}
+	
+	/**
+	 * Returns only one object matching the criteria
+	 * @param unknown_type $listOfSpecialClause
+	 */
+	public function searchOneObject($listOfSpecialClause = FALSE)
+	{
+		// takes the set member variables and returns an array of of matching rows
+		$count = $this->query($listOfSpecialClause);
+		$model = $this->fetchObject();
+		
+		return $model;
 	}
 	
 	/**
@@ -628,24 +653,30 @@ abstract class MySQLModel extends DatabaseModel
 
 	    $joinAssocs = $this->getJoinTableAssociations();
 	    $joinModels = array();
+	    $tableAliases = array();
 	    foreach ($joinAssocs as $key => $assoc)
 	    { 
 	        if (array_search($key, $this->_joinArray) !== FALSE)
 	        {
-	            unset($props[$assoc['localKey']]);
+//	            unset($props[$assoc['localKey']]);
 	            
 	            // TODO: this is too bad, to have to create the new model, then toss it just to get the table, but I don't want to re-ask for teh table name because they already specified that once
 	            $foreignModel = $assoc['foreignModel'].'Model';
 	            includeElement(array($foreignModel.'.php'), 'model');
 	            $foreignModel = new $foreignModel();
 	            $joinModels[] = $foreignModel;
-	            $foreignTable = MySQLModel::escapeTable($foreignModel->getTable());
 	            
-	            $columns .= $this->getAllColumnSql($foreignModel, $columnSep, $assoc['foreignModel']);
-	            $columnSep = ',';
+	            $foreignTable = MySQLModel::escapeTable($foreignModel->getTable());
 	            
 	            if (isset($assoc['relationship']) && $assoc['relationship'] === MySQLModel::MANY_TO_MANY)
 	            {
+	                $foreignTableAlias = $assoc['joinTable'].'_'.$foreignModel->getTable();
+	                $tableAliases[$foreignModel->getTable()] = $foreignTableAlias;
+	                $columns .= $this->getAllColumnSql($foreignModel, $columnSep, $assoc['joinTable'].'_'.$assoc['foreignModel'], $foreignTableAlias);
+	                $columnSep = ',';
+	                
+	                $foreignTableAlias = MySQLModel::escapeTable($foreignTableAlias);
+	                
 	                if (array_key_exists('joinTable', $assoc))
 	                {
 	                    $columns .= $this->getPivotTableColumnSql($assoc['joinTable'], $assoc['joinColumns'], $columnSep);
@@ -653,15 +684,22 @@ abstract class MySQLModel extends DatabaseModel
 	                $joinTable = MySQLModel::escapeTable($assoc['joinTable']);
     	                
 	                $cond1 = $table.'.'.MySQLModel::escapeColumn($assoc['localKey']).' = '.$joinTable.'.'.MySQLModel::escapeColumn($assoc['assocLocalKey']);
-	                $cond2 = $joinTable.'.'.MySQLModel::escapeColumn($assoc['assocForeignKey']).' = '.$foreignTable.'.'.MySQLModel::escapeColumn($assoc['foreignKey']);
+	                $cond2 = $joinTable.'.'.MySQLModel::escapeColumn($assoc['assocForeignKey']).' = '.$foreignTableAlias.'.'.MySQLModel::escapeColumn($assoc['foreignKey']);
 	                
-	                if (isset($assoc['policy']) && $assoc['policy'] == MySQLModel::LEFT_JOIN)
+	                if (isset($assoc['policy']))
 	                {
-    	                $tables .= ' left join '.MySQLModel::escapeTable($assoc['joinTable']).' on '.$cond1.' left join '.$foreignTable.' on '.$cond2;
+	                    if ($assoc['policy'] == MySQLModel::RIGHT_JOIN)
+	                    {
+	                        $tables .= ' right outer join '.MySQLModel::escapeTable($assoc['joinTable']).' on '.$cond1.' right outer join '.$foreignTable.' as '.$foreignTableAlias.' on '.$cond2;
+	                    }
+	                    else
+	                    {
+	                        $tables .= ' left outer join '.MySQLModel::escapeTable($assoc['joinTable']).' on '.$cond1.' left outer join '.$foreignTable.' as '.$foreignTableAlias.' on '.$cond2;
+	                    }
 	                }
 	                else
 	                {
-    	                $tables .= ', '.MySQLModel::escapeTable($assoc['joinTable']).', '.$foreignTable;
+    	                $tables .= ', '.MySQLModel::escapeTable($assoc['joinTable']).', '.$foreignTable.' as '.$foreignTableAlias;
     	                
     	                $conditions .= $conditionSep.$cond1;
     	                $conditionSep = ' and ';
@@ -672,11 +710,23 @@ abstract class MySQLModel extends DatabaseModel
 	            }
 	            else
 	            {
+	                $tableAliases[$foreignModel->getTable()] = $foreignModel->getTable();
+	                
+    	            $columns .= $this->getAllColumnSql($foreignModel, $columnSep, $assoc['foreignModel']);
+    	            $columnSep = ',';
+	            
 	                $cond = $table.'.'.MySQLModel::escapeColumn($assoc['localKey']).' = '.$foreignTable.'.'.MySQLModel::escapeColumn($assoc['foreignKey']);
 	                
-	                if (isset($assoc['policy']) && $assoc['policy'] == MySQLModel::LEFT_JOIN)
+	                if (isset($assoc['policy']))
 	                {
-	                    $tables .= ' left join '.$foreignTable.' on '.$cond;
+	                    if ($assoc['policy'] == MySQLModel::RIGHT_JOIN)
+	                    {
+	                        $tables .= ' right join '.$foreignTable.' on '.$cond;
+	                    }
+	                    else
+	                    {
+	                        $tables .= ' left join '.$foreignTable.' on '.$cond;
+	                    }
 	                }
 	                else
 	                {
@@ -708,11 +758,11 @@ abstract class MySQLModel extends DatabaseModel
 	        $conditions .= $this->getWhereClause($props, $this->getTable(), $listOfSpecialClause, $conditionSep);
 	        $conditionSep = ' and ';
 	    }
-	    
+
 	    foreach ($this->_joinConditions as $model)
 	    {
 	        $joinProps = $model->getSetMemberVariables();
-	        $joinTable = $model->getTable();
+	        $joinTable = $tableAliases[$model->getTable()];
 	        
 	        $conditions .= $this->getWhereClause($joinProps, $joinTable, $listOfSpecialClause, $conditionSep);
 	        $conditionSep = ' and ';
@@ -736,9 +786,9 @@ abstract class MySQLModel extends DatabaseModel
 		return mysql_num_rows($this->_queryHandle);
 	}
 	
-	private function getAllColumnSql(&$model, $columnSep, $prefixColumnNames = false)
+	private function getAllColumnSql(&$model, $columnSep, $prefixColumnNames = false, $table = false)
 	{
-	    $table = MySQLModel::escapeTable($model->getTable());
+	    $table = MySQLModel::escapeTable($table === false ? $model->getTable() : $table);
 	    $cols = $model->getMemberVariables();
 	    
 	    $pkey = $model->getPrimaryKey();
@@ -772,7 +822,6 @@ abstract class MySQLModel extends DatabaseModel
 	    $escapedTable = MySQLModel::escapeTable($table);
 	    $ret = '';
         $operators = $this->getOperators($listOfSpecialClause);
-        
 		foreach ($props as $col => $value)
 		{
 		    $op = '=';
@@ -921,6 +970,7 @@ abstract class MySQLModel extends DatabaseModel
 
 	private function sqlQuery($sql)
 	{
+		//echo($sql);
 		$h = mysql_query($sql);
 		
 		if ($h === false)
