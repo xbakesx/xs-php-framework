@@ -92,10 +92,15 @@ class MySQLException extends Exception
         $this->_query = $query;
     }
     
+    public function getQuery()
+    {
+        return $this->_query;
+    }
+    
     public function debug()
     {
         debug($this->getMessage());
-        debug($this->query);
+        debug($this->_query);
         debug($this->getTrace());
     }
 }
