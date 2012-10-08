@@ -122,18 +122,12 @@ class ScaffoldingController extends Controller
             if ('update' == $_POST['action'])
             {
                 $model = $this->populateModelFromPost($_POST['model'], FALSE);
-                if (!$model->update())
-                {
-                    $this->json(array('error' => 'Failed to update '.$_POST['model']));
-                }
+                $model->update();
             }
             else if ('create' == $_POST['action'])
             {
                 $model = $this->populateModelFromPost($_POST['model'], FALSE);
-                if (!$model->create())
-                {
-                    $this->json(array('error' => 'Failed create new '.$_POST['model']));
-                }
+                $model->create();
             }
         }
         catch (MySQLException $ex)
